@@ -24,9 +24,6 @@ $.extend({
 	 */
 	 checkSubmitAudit:function($flow, formName, isSave, callback){
 		var fillforms = $flow.getForm();
-		if(formName){
-			fillforms.setValue("10","hide_status_",formName);
-		}
 		var dataMgr = fillforms.datamgr;
 		fillforms.endEdit({
 			success:function(){
@@ -34,7 +31,7 @@ $.extend({
 						//判断是否有审核错误
 						if(isSave){
 							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(submitArgs,instArgs){
-								var funcname = "save_"+formName;debugger;
+								var funcname = "save_"+formName;
 								if($.wicallbacks && $.wicallbacks[funcname]){
 									$.wicallbacks[funcname]();
 								}else{
@@ -614,7 +611,8 @@ function hiddenWIButtons($flow, buttons){
  */
 var his = $(".sz-wi-wihistory");
 if(his.length>0){
-	his.find("a[href^='/wiapi']").each(function(i,v){
+	var prefix = sz.sys.ctx('/wiapi');
+	his.find("a[href^='"+prefix+"']").each(function(i,v){
 		var obj = $(this);
 		/**
 		 * wiapi/attachment?id=137602
