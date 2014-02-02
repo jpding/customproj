@@ -28,7 +28,6 @@ $.extend({
 		fillforms.endEdit({
 			success:function(){
 					dataMgr.audit({success:function(){
-						//判断是否有审核错误
 						if(isSave){
 							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(submitArgs,instArgs){
 								var funcname = "save_"+formName;
@@ -57,6 +56,11 @@ $.extend({
 								}
 							}});
 						}else{
+							var failLen = fillforms.getAllFailAuditResult().length;
+							if(failLen > 0){
+								fillforms.showAuditResults();
+								return;
+							}
 							$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
 								var funcname = "submit_"+formName;debugger;
 								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
@@ -229,6 +233,10 @@ function hiddenWIButtons($flow, buttons){
 		}
 		
 		var uid = $form.getComponent("fb_uid").val();
+		upload.uploadTemplateContract($form, "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/HTFBGL", "FM_TPL_INFO", "ATTACHMENT1", "FN0", uid, compid, callback, noNeedEdit);
+		
+		/*
+		var uid = $form.getComponent("fb_uid").val();
 		var data = {
 			resid		        : 'LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO',
 			dataperiod		  : "",
@@ -251,7 +259,7 @@ function hiddenWIButtons($flow, buttons){
 			success		      : function(info) {
 				var newInfo = $form.getFormData().getAttachment(compid);
 				compObj.setAttachmentValue(newInfo);
-				/*在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit*/
+				// 在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit
 				if(!noNeedEdit){
 					upload.editAttachmentAsDoc($form, compid,callback);
 				}
@@ -260,16 +268,12 @@ function hiddenWIButtons($flow, buttons){
 	
 		var $fillforms = $form.getFillForms();
 		var datamgr    = $fillforms.getDataMgr();
-		/**
-		 * 重载保存草稿的功能，从范本
-		 */
+		//重载保存草稿的功能，从范本
 		if(!datamgr.oldAjax){
 			datamgr.oldAjax = datamgr.ajax;
 		
 			datamgr.ajax = function(args){
-				/**
-				 * sz.sys.ctx("/cifill/uploadAttachment2")
-				 */
+				// sz.sys.ctx("/cifill/uploadAttachment2")
 				var url = args.url;
 				
 				if(url == sz.sys.ctx("/cifill/uploadAttachment2")){
@@ -283,6 +287,7 @@ function hiddenWIButtons($flow, buttons){
 		}
 		
 		$fillforms.uploadAttachment(data);
+		*/
 	}
 	
 	/**
@@ -423,8 +428,74 @@ function hiddenWIButtons($flow, buttons){
 			 * 1.从范本里面取出合同，目前打开合同，就会自动生成，这里就不用在生成合同
 			 * TODO
 			 */
-			
 		}
+	}
+	
+	/**
+	 * 上传范本合同，用于范本草稿还没生成时使用，会直接从范本库的范本拷贝到当前表单中
+	 * 范本相关参数
+	 * t_resid:
+	 * t_dwTable:
+	 * t_fileContentField:
+	 * t_fieldNameField:
+	 * compid:范本待保存的控件id
+	 */
+	upload.uploadTemplateContract = function($form, t_resid, t_dwTable, t_fileContentField, t_filedNameField, t_uid, compid, callback, noNeedEdit){
+		var $fillforms = $form.getFillForms();
+		var resid = $fillforms.resid;
+		var data = {
+			resid		        : resid,
+			dataperiod		  : "",
+			datahierarchies	: "",
+			formName		    : $form.getFormName(),
+			compid		      : compid,
+			compress		    : false,
+			ciattachment		: {
+				taskid			     : t_resid,
+				formset			     : "default",
+				dataperiod			 : "",
+				datahierarchies		: "",
+				uid : t_uid,
+				rowkey : "",
+				dwTable			     : t_dwTable,
+				fileContentField	: t_fileContentField,
+				fileNameField			: t_filedNameField
+			},
+			formdatas : JSON.stringify(upload.getFillFormDatas($form)),
+			success		      : function(info) {
+				var newInfo = $form.getFormData().getAttachment(compid);
+				compObj.setAttachmentValue(newInfo);
+				/*在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit*/
+				if(!noNeedEdit){
+					upload.editAttachmentAsDoc($form, compid,callback);
+				}
+			}
+		};
+	
+		var datamgr    = $fillforms.getDataMgr();
+		/**
+		 * 重载保存草稿的功能，从范本
+		 */
+		if(!datamgr.oldAjax){
+			datamgr.oldAjax = datamgr.ajax;
+		
+			datamgr.ajax = function(args){
+				/**
+				 * sz.sys.ctx("/cifill/uploadAttachment2")
+				 */
+				var url = args.url;
+				
+				if(url == sz.sys.ctx("/cifill/uploadAttachment2")){
+					args.url = sz.sys.ctx(upload.WORD_URL+"?method=saveDraft");
+					args.data.path = args.data.resid;
+					datamgr.oldAjax(args);
+				}else{
+					datamgr.oldAjax(args);
+				}
+			}
+		}
+		
+		$fillforms.uploadAttachment(data);
 	}
 	
 	/**
