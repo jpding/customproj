@@ -268,7 +268,12 @@ ZTreeWrite.prototype.writeProp=function(id , propElem){
 	
 	//prop.put("icon", propElem.elementText("icon"));
 	if(StringUtils.isNotEmpty(path)){
-		prop["url"] = this.getUrl(propElem, id, path);
+		/**
+		 * added by djp  2014-11-25
+		 * 这里不使用Ztree url属性，主要是嵌入dwz框架，点击树的时候，经常会直接open页面，而不是直接
+		 * 打开在iframe中
+		 */
+		prop["exurl"] = this.getUrl(propElem, id, path);
 		prop["target"] = "navTab";
 		prop["path"] = path;
 	}

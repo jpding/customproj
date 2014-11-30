@@ -145,12 +145,14 @@
 		var tree = sz.commons.JTree.create({
 			pdom:ulDom,
 			data:data,
-			view : {
-				addDiyDom : function(treeId, treeNode){
-					if(treeNode.url){
-						var a = $("#"+treeNode.tId+"_a");
-						a.attr("external", "true");
-						a.attr("rel", treeNode.tId);
+			callback :{
+				onClick : function(event, treeId, treeNode, clickFlag){
+					if(treeNode.exurl){
+						var title = treeNode.name;
+						var tabid = treeNode.tId;
+						var url = treeNode.exurl;
+						navTab.openTab(tabid, url,{title:title, fresh:true, external:true});
+						event.preventDefault();	
 					}
 				}
 			}
