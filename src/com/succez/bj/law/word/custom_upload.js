@@ -7,6 +7,8 @@
  */
 (function($){
  	var upload = sz.sys.namespace("sz.ci.custom.uploadattachment");
+ 	
+ 	upload.WORD_URL = "/meta/LAWCONT/others/word/wordedit.action";
 	
 	/**
 	 *	范本引入
@@ -56,7 +58,7 @@
 				var url = args.url;
 				
 				if(url == sz.sys.ctx("/cifill/uploadAttachment2")){
-					args.url = sz.sys.ctx("/meta/LAWCONT/others/word/wordedit.action?method=saveDraft");
+					args.url = sz.sys.ctx(upload.WORD_URL+"?method=saveDraft");
 					args.data.path = args.data.resid;
 					datamgr.oldAjax(args);
 				}else{
@@ -83,7 +85,7 @@
 				if(!attachmentInf){
 					return null;
 				}
-				var customUrl = sz.sys.ctx("/meta/LAWCONT/others/word/wordedit.action");
+				var customUrl = sz.sys.ctx(upload.WORD_URL);
 				/**
 				 * /cifill/downloadAttachment?resid=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
 				 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord
@@ -103,6 +105,49 @@
 				return attachmentInf;
 			}
 		}
+		
+		if(!htwb.oldEditAttachmentAsDoc){
+			htwb.oldEditAttachmentAsDoc = htwb.editAttachmentAsDoc;
+			
+			htwb.editAttachmentAsDoc = function(params){
+				htwb.editAttachmentAs(function(args) {
+				    var nmspace = sz.utils.guid("sz.ci.editattachment.");
+				    var nmspaceObj = sz.sys.namespace(nmspace);
+				    /**
+				     * 20141104 guob
+				     * ISSUE:LAWCONT-38
+				     * 问题现象：在调用cifillforms的editAttachmentAsDoc方法时设置的回调函数initPlugin不起作用
+				     * 问题原因：editAttachmentAsDoc方法中没有设置参数，导致外面传入的回调函数不起作用
+				     * 解决方案：editAttachmentAsDoc方法支持设置参数并将该参数合并到已有的参数中，这样外部传入的
+				     * 回调函数就可以正常使用了
+				     */
+				    var success = params && params.success;
+				    var nargs = $.extend({}, params, args);
+				    
+				    nmspaceObj.getOpenUrl = function() {
+					    return nargs.url;
+				    }
+				    nmspaceObj.getSaveArgs = function() {
+				    	var save = nargs.save;
+				    	save.url = sz.sys.ctx(upload.WORD_URL+"?method=saveWordInForm");
+				    	save.path = save.resid;
+					    return save;
+				    }
+				    nmspaceObj.getArgs = function() {
+					    return nargs;
+				    }
+				    nmspaceObj.getFileName = function() {
+					    return nargs.filename;
+				    }
+				    nmspaceObj.success = function(info) {
+					    nargs.success(JSON.parse(info));
+					    success && success();
+				    }
+				    window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
+			    });
+			}
+		}
+		
 		htwb.editAttachmentAsDoc({filename:"word.doc",success:function(){
 			/**
 			 * alert('123');

@@ -1,7 +1,8 @@
 var BeanGetter = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
 
 var serviceAttachments = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.CIServiceAttachmentsImpl);
-var dataPackageUtil = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.datapackage.DataPackageUtil);
+var dataPackageUtil    = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.datapackage.DataPackageUtil);
+var scmgr = BeanGetter.getBean(com.succez.bi.ci.mgr.CIServiceCacheMgr);
 
 var mgr = BeanGetter.getBean(com.succez.commons.jdbc.ConnectionFactoryManager);
 var sf  = BeanGetter.getBean(com.succez.commons.jdbc.sql.SQLFactory);
@@ -180,6 +181,18 @@ function writeWord(input, res, downloadtype){
  */
 function uploadWord(req, res){
 	var params = getDownloadParam(req);
+	var wordfile = getUploadFile(req);
+	/**
+	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
+	 */
+	//saveWordToDb(params, file);
+}
+
+/**
+ * 从req获取上传文件，一般只有一个文件
+ * @param {} req
+ */
+function getUploadFile(req){
 	var wordfile = null;
 	var files = req.getFiles();
 	for(var i=0; i<files.length; i++){
@@ -192,10 +205,7 @@ function uploadWord(req, res){
 	if(file == null){
 		throw new Error("获取不到word文件，上传文件为空!");
 	}
-	/**
-	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
-	 */
-	//saveWordToDb(params, file);
+	return file;
 }
 
 function getDownloadParam(req){
@@ -256,7 +266,7 @@ function getMetaEntity(args){
 
 /**
  * 把文件存储到数据库
- * @param {} args  url链接上的相关参数
+ * @param {} args  url链接上的相关参数  {facttable:xx1,wordfield:xx2,keyfield:xx3,keys:xy}
  * @param {} file  插件保存时,上传到服务器端的临时文件
  */
 function saveWordToDb(args, file){
@@ -309,7 +319,7 @@ function downloadFormWord(req, res){
 		var myOut = new MyByteArrayOutputStream();
 		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
 					dwTable, fileContentField, fileNameField);
-		var bins = new MyByteArrayInputStream(myOut.getBuf());
+		var bins = myOut.asInputStream();
 		/**
 		 * 下载已经存储到表单数据库中的文档：
 		 * 1.该表单已经提交审批了， 留痕打开
@@ -319,7 +329,7 @@ function downloadFormWord(req, res){
 		 * TODO  
 		 */
 		var downloadType = ProtectionType.READ_ONLY;
-		var state = getAuditState(task, dwTable, dataperiod, datahierarchies);
+		var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
 		if(state == "saved"){
 			downloadType = -1;
 		}else if(StringUtils.startsWith(state, "submit")){
@@ -403,16 +413,65 @@ function wordAddTemplateSign(file){
 }
 
 /**
- * 在word修改时要对
+ * 在word修改时要对修改的
  */
-function backUpWord(){
+function backupWord(){
 }
 
 /**
  * 在审批过程中，要对word文档进行修改，这时数据会直接写入数据库对应的表单库，而不是写入到草稿库中
  * 1.在写入时，要注意文件的安全性
+ * 
+ * 客户端传递的参数：
+ * 1. resid， 可以通过该id获取CITask, 由于脚本不能直接接收resid，这里修改为path
+ * 2. period  数据期
+ * 3. datahierarchies  数据级次
+ * 4. formName 表单名
+ * 5. compName 组件名  可以获取存储到哪个字段
+ * 6. compress 是否压缩存储
+ * 7. rowKey   如果是浮动表，还需要传入一个rowKey， TODO 目前先不解决浮动表的
  */
 function saveWordInForm(req, res){
+	var path = req.path;
+	var ciTask = serviceAttachments.getCITask(path);
+	var compileForms = scmgr.getCIFormsCompileInf(ciTask, "default");
+	var finf = compileForms.getCIFormCompileInf(req.formName);
+	var cdbinf = serviceAttachments.getFormField(finf, req.compName);
+	var srcdwtable = cdbinf.getTableName();
+	var wordfield = cdbinf.getName();
+	var detailGrain = ciTask.getDetailGrainDef();
+	if(!detailGrain){
+		throw new Error(ciTask.getPath()+"未设置填报明细，暂不支持!");
+	}
+	var uid = ciTask.getDetailGrainDef().getIDField();
+	var facttable = ciTask.getDWTableInf(srcdwtable).getPath();
+	var dataHier  = req.datahierarchies;
+	var keys = getDetailIdValue(dataHier, uid);
+	if(!keys){
+		throw new Error(dataHier+"找不到填报明细的内容!填报明细字段为："+uid);
+	}
+	
+	var wordfile = getUploadFile(req);
+	/**
+	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
+	 */
+	var params = {"facttable":facttable, "wordfield":wordfield, "keyfield":uid, "keys":keys};
+	saveWordToDb(params, wordfile);
+}
+
+/**
+ * ORG=SHFUS&UID=95f99345da174959959c95a6de4d8520
+ * @param {} uidField
+ */
+function getDetailIdValue(keys, idField){
+	var arrs = StringUtils.parseEnumValue(keys);
+	for(var i=0; i<arrs.length; i++){
+		var id = arrs[i][0];
+		if(StringUtils.equalsIgnoreCase(id, idField)){
+			return arrs[i][1];
+		}
+	}
+	return null;
 }
 
 /**
