@@ -65,37 +65,14 @@ function main(args){
 }
 
 /**
- * 默认是只读打开word
- * @param {} req
+ * 打开word文档，默认是只读打开，其url示例如下：
+ * /meta/LAWCONT/others/test/word/wordedit.action?facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
+ * @param {} req  req传递的参数见上面
  * @param {} res
  */
 function execute(req, res){
 	res.attr("downloadtype",ProtectionType.READ_ONLY);
 	return "wordedit.ftl";
-}
-
-function testGetCIField(){
-	var task = serviceAttachments.getCITask("18907146");
-	println(getCITableFieldValue(task, "LC_CONTRACTINFO", "20141114", "ORG=CSSC&UID=CSSC", "status_"));
-}
-/**
- * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
- * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=27262991&keyfield=UID&keys=CSSC&wordfield=ATTACHMENT1
- * 普通方式打开
- * @param {} req
- * @param {} res
-function open(req, res){
-	res.attr("downloadtype","-1");
-	return "wordedit.ftl";
-}
- */
-
-/**
- * word文档存储
- * @param {} req
- * @param {} res
- */
-function save(req, res){
 }
 
 /**
@@ -116,34 +93,16 @@ function downloadword(req, res){
 	
 	var params = getDownloadParam(req);
 	var ins = getWordInputStream(params);
-	
+	var input = java.io.BufferedInputStream(ins);
 	try{
 		
 		com.succez.commons.webctrls.domain.ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword",
 				"utf-8", null, "word.doc");
 		
-		var input = java.io.BufferedInputStream(ins);
-		var out = res.getOutputStream();
-		try {
-			var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
-			println("downloadtype==========:"+downloadtype);
-			if(downloadtype == -1){
-				IOUtils.copy(input, out);
-			}else{
-				var doc = new Document(input);
-				if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
-					doc.setTrackRevisions(true);
-				}
-				doc.protect(downloadtype);
-				//1 doc  8 docx
-				doc.save(out,1);
-			}
-		}
-		finally {
-			out.close();
-		}
+		var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
+		writeWord(input, res, downloadtype);
 	}finally{
-		ins.close();
+		input.close();
 	}
 }
 
@@ -343,7 +302,6 @@ function downloadFormWord(req, res){
  * 把word附件中的内容存储到草稿库中，主要用于用户选择范本时，要往范本里面记录一个标识信息，便于
  * 以后用户编辑时，设置word的状态
  * 
- * TODO
  * 自动生成合同文本，把表单里面的项，自动插入到文本中
  */
 function saveDraft(req, res){
@@ -385,9 +343,11 @@ function saveDraft(req, res){
 		var contentType = srcAttachment.getContentType();
 		
 		/**
-		 * 插入范本标识
+		 * 插入范本之前做一些处理，见函数说明
 		 */
-		wordAddTemplateSign(file);
+		var formDataStr = req.formdatas;
+		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
+		insertTemplateBefore(file, formData);
 		
 		var ins = new FileInputStream(file);
 		try {
@@ -404,11 +364,34 @@ function saveDraft(req, res){
 }
 
 /**
- * 加入范本标识，并返回一个输入流
+ * 插入范本之前，对文档做如下处理：
+ * 1.插入范本标识
+ * 2.把表单内容填入到word中
+ * @formDatas key全大写
  */
-function wordAddTemplateSign(file){
+function insertTemplateBefore(file, formDatas){
 	var doc = new Document(file);
 	doc.getVariables().add(PROP_TEMPLATE, "1");
+	
+	/**
+	 * 初始化bookMark的值
+	 */
+	if(formDatas){
+		var keys = formDatas.keySet().toArray();
+		var bks = doc.getRange().getBookmarks();
+		for(var i=0, len=bks.getCount(); i<len; i++){
+			var bk = bks.get(i);
+			var key = bk.getName();
+			var kk = StringUtils.upperCase(key);
+			if(keys.indexOf(kk) < 0){
+				continue;
+			}
+			
+			bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
+		}
+	}
+	
+	
 	doc.save(file);
 }
 
@@ -460,6 +443,7 @@ function saveWordInForm(req, res){
 }
 
 /**
+ * 解析出数据次级中的明细字段的值
  * ORG=SHFUS&UID=95f99345da174959959c95a6de4d8520
  * @param {} uidField
  */
@@ -475,7 +459,8 @@ function getDetailIdValue(keys, idField){
 }
 
 /**
- * 下载草稿中的文档，要区分是用户上传的文档，还是通过范本起草的文档
+ * 用户在起草合同时，上传的文档是存储在草稿中的，通过范本引入的文档也是存储在草稿中，故打开草稿时，也要区分
+ * 用户自定义的合同，还是范本起草的合同，如果是范本起草的合同，要以窗体的方式打开。
  * @param {} req
  * @param {} res
  * @param {} citask
@@ -598,4 +583,28 @@ function getDraftAttachmentInfQuery(id, draft) {
 	query.addQueryField(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
 	query.addFieldFilter(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHEMENT_ID, "='" + id + "'");
 	return query;
+}
+
+function testGetCIField(){
+	var task = serviceAttachments.getCITask("18907146");
+	println(getCITableFieldValue(task, "LC_CONTRACTINFO", "20141114", "ORG=CSSC&UID=CSSC", "status_"));
+}
+/**
+ * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
+ * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=27262991&keyfield=UID&keys=CSSC&wordfield=ATTACHMENT1
+ * 普通方式打开
+ * @param {} req
+ * @param {} res
+function open(req, res){
+	res.attr("downloadtype","-1");
+	return "wordedit.ftl";
+}
+ */
+
+/**
+ * word文档存储
+ * @param {} req
+ * @param {} res
+ */
+function save(req, res){
 }

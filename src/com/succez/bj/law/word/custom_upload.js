@@ -14,7 +14,8 @@
 	 *	范本引入
 	 */
 	upload.uploadAndEditContractByModel = function($form, compid) {
-		var val = $form.getComponent(compid).getAttachmentValue();
+		var compObj = $form.getComponent(compid);
+		var val = compObj.getAttachmentValue();
 		if (val != null){
 			upload.editAttachmentAsDoc($form, compid);
 			return;
@@ -38,7 +39,10 @@
 				fileContentField	: "ATTACHMENT1",
 				fileNameField			: "FN0"
 			},
+			formdatas : JSON.stringify(upload.getFillFormDatas($form)),
 			success		      : function(info) {
+				var newInfo = $form.getDataMgr().getFormsData().getFormData("LC_CONTRACTINFO").getAttachment(compid);
+				compObj.setAttachmentValue(newInfo);
 				upload.editAttachmentAsDoc($form, compid);
 			}
 		};
@@ -130,7 +134,12 @@
 				    nmspaceObj.getSaveArgs = function() {
 				    	var save = nargs.save;
 				    	save.url = sz.sys.ctx(upload.WORD_URL+"?method=saveWordInForm");
-				    	save.path = save.resid;
+						if(!save["path"]){
+							save["path"] = save.resid;
+							save.resid = null;
+							delete save.resid;
+						}
+						
 					    return save;
 				    }
 				    nmspaceObj.getArgs = function() {
@@ -153,5 +162,20 @@
 			 * alert('123');
 			 */
 		}});
+	}
+	
+	
+	upload.getFillFormDatas = function($form){
+		var allcompdatas = $form.getFormData()["componentsdata"];
+		var compdatas = $.grep(allcompdatas, function(n, i){
+			return n && n.compinf && n.compinf.dbfield;
+		})
+		var result = {};
+		for(var i=0; compdatas && i<compdatas.length; i++){
+			var compData = compdatas[i];
+			var vv = compData.getSubmitValue();
+			result[compData.compinf.dbfield] = vv;
+		}
+		return result;
 	}
 })(jQuery)
