@@ -11,6 +11,7 @@ var WebUtils = com.succez.commons.util.WebUtils;
 var StringUtils = com.succez.commons.util.StringUtils;
 var IOUtils   = com.succez.commons.util.io.IOUtils;
 var FileUtils = com.succez.commons.util.io.FileUtils;
+var ContentTypeUtils = com.succez.commons.util.ContentTypeUtils;
 var CIMetaConsts = com.succez.bi.ci.meta.CIMetaConsts;
 var MyByteArrayOutputStream = com.succez.commons.util.io.MyByteArrayOutputStream;
 var MyByteArrayInputStream  = com.succez.commons.util.io.MyByteArrayInputStream;
@@ -19,6 +20,7 @@ var URLDecoder = java.net.URLDecoder;
 var Document = com.aspose.words.Document;
 var ProtectionType = com.aspose.words.ProtectionType;
 var NumberUtils    = com.succez.commons.util.NumberUtils;
+var StringEscapeUtils = com.succez.commons.util.StringEscapeUtils;
 var ActionUtils = com.succez.commons.webctrls.domain.ActionUtils;
 var repo = BeanGetter.getBean(com.succez.metadata.api.MetaRepository);
 var tempFileService = BeanGetter.getBean(com.succez.commons.service.io.TempFileService);
@@ -148,7 +150,8 @@ function uploadWord(req, res){
 }
 
 /**
- * 从req获取上传文件，一般只有一个文件
+ * 从req获取上传文件，一般只有一个文件，是一个map对象
+ * {fileName:"", file:file} 其中fileName是经过编码的，需要解码
  * @param {} req
  */
 function getUploadFile(req){
@@ -164,7 +167,8 @@ function getUploadFile(req){
 	if(file == null){
 		throw new Error("获取不到word文件，上传文件为空!");
 	}
-	return file;
+	
+	return wordfile;
 }
 
 function getDownloadParam(req){
@@ -289,9 +293,9 @@ function downloadFormWord(req, res){
 		 */
 		var downloadType = ProtectionType.READ_ONLY;
 		var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
-		if(state == "saved"){
+		if(state == "10"){
 			downloadType = -1;
-		}else if(StringUtils.startsWith(state, "submit")){
+		}else if(state=="20"){
 			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
 		}
 		writeWord(bins, res, downloadType);			
@@ -351,8 +355,9 @@ function saveDraft(req, res){
 		
 		var ins = new FileInputStream(file);
 		try {
-			return serviceAttachments.saveAttachment(resid, formset, dataperiod, datahierarchies, rowKey, formName, compid, false,
-					filename, size, ins, contentType, id);
+			var attachment = serviceAttachments.saveAttachment(resid, formset, dataperiod, datahierarchies, rowKey, formName, compid, false,
+					filename, size, ins, contentType, id); 
+			return getAttachmentInfo(attachment);
 		}
 		finally {
 			ins.close();
@@ -373,6 +378,8 @@ function insertTemplateBefore(file, formDatas){
 	var doc = new Document(file);
 	doc.getVariables().add(PROP_TEMPLATE, "1");
 	
+	println("insert template sign:"+file);
+	
 	/**
 	 * 初始化bookMark的值
 	 */
@@ -390,7 +397,6 @@ function insertTemplateBefore(file, formDatas){
 			bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
 		}
 	}
-	
 	
 	doc.save(file);
 }
@@ -417,9 +423,65 @@ function backupWord(){
 function saveWordInForm(req, res){
 	var path = req.path;
 	var ciTask = serviceAttachments.getCITask(path);
+	var formName = req.formName;
+	var compName = req.compName;
 	var compileForms = scmgr.getCIFormsCompileInf(ciTask, "default");
-	var finf = compileForms.getCIFormCompileInf(req.formName);
-	var cdbinf = serviceAttachments.getFormField(finf, req.compName);
+	var finf = compileForms.getCIFormCompileInf(formName);
+	var cdbinf = serviceAttachments.getFormField(finf, compName);
+	var srcdwtable = cdbinf.getTableName();
+	
+	var state = getAuditState(ciTask, srcdwtable, req.period, req.datahierarchies);
+	println("saving:"+state);
+	if(state == "10" || state == null || state == ""){
+		return editFormSavingWord(req, res, ciTask);
+	}else if(state == "20"){
+		auditFormSavingWord(req, res, ciTask, formName, compName);
+	}
+}
+
+function editFormSavingWord(req, res, citask){
+	var fileobj = getUploadFile(req);
+	var filename = fileobj.fileName;
+	/**
+	 * 20140917 guob
+	 * ISSUE:LAWCONT-38
+	 * 问题现象：通过插件上传的文件的文件名中有中文，传到后台后乱码
+	 * 解决方案：在js端对文件名进行了编码（encodeURIComponent），在服务器端需要解码，
+	 * 这样包装中文的文件名不会乱码
+	 */
+	filename = StringEscapeUtils.decodeURI(filename);
+	
+	var file = fileobj.file;
+	var size = file.length();
+	var contentType = ContentTypeUtils.getContentType(filename);//自动识别contentType
+	var inputStream = file.getInputStream();
+	try {
+		println("filename:"+filename);
+		var attachment = serviceAttachments.saveDraft(citask, req.id, req.period, req.datahierarchies, req.rowKey,
+				req.formName, req.compName, filename, contentType, size, inputStream, false);
+		return getAttachmentInfo(attachment);
+	}
+	finally {
+		inputStream.close();
+	}
+}
+
+function getAttachmentInfo(attachment){
+	var info = {};//url在客户端生成
+	info["id"] = attachment.getID();
+	info["size"] =  java.lang.String.valueOf(attachment.getSize());
+	info["name"] = attachment.getFilename();
+	info["updateTime"] = String.valueOf(attachment.getUpdateTime());
+	var contentType = attachment.getContentType();
+	info["contentType"] = contentType;		
+	println(info);
+	return info;
+}
+
+function auditFormSavingWord(req, res, ciTask, formName, compName){
+	var compileForms = scmgr.getCIFormsCompileInf(ciTask, "default");
+	var finf = compileForms.getCIFormCompileInf(formName);
+	var cdbinf = serviceAttachments.getFormField(finf, compName);
 	var srcdwtable = cdbinf.getTableName();
 	var wordfield = cdbinf.getName();
 	var detailGrain = ciTask.getDetailGrainDef();
@@ -439,7 +501,7 @@ function saveWordInForm(req, res){
 	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
 	 */
 	var params = {"facttable":facttable, "wordfield":wordfield, "keyfield":uid, "keys":keys};
-	saveWordToDb(params, wordfile);
+	saveWordToDb(params, wordfile.file);
 }
 
 /**
@@ -600,11 +662,3 @@ function open(req, res){
 	return "wordedit.ftl";
 }
  */
-
-/**
- * word文档存储
- * @param {} req
- * @param {} res
- */
-function save(req, res){
-}

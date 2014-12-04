@@ -20,13 +20,12 @@
 			upload.editAttachmentAsDoc($form, compid);
 			return;
 		}
-		
 		var uid = $form.getComponent("fb_uid").val();
 		var data = {
 			resid		        : 18907146,
 			dataperiod		  : "",
 			datahierarchies	: "",
-			formName		    : "LC_CONTRACTINFO",
+			formName		    : $form.getFormName(),
 			compid		      : compid,
 			compress		    : false,
 			ciattachment		: {
@@ -41,7 +40,7 @@
 			},
 			formdatas : JSON.stringify(upload.getFillFormDatas($form)),
 			success		      : function(info) {
-				var newInfo = $form.getDataMgr().getFormsData().getFormData("LC_CONTRACTINFO").getAttachment(compid);
+				var newInfo = $form.getFormData().getAttachment(compid);
 				compObj.setAttachmentValue(newInfo);
 				upload.editAttachmentAsDoc($form, compid);
 			}
@@ -102,10 +101,12 @@
 				url = sz.utils.setParameterOfUrl("path", resid, url);
 				url = customUrl+sz.utils.setParameterOfUrl("method", "downloadFormWord", url);
 				attachmentInf.url = url;
+				if(!attachmentInf.name){
+					attachmentInf.name = "word.doc";
+				}
 				/**
-				 * 
+				 * attachmentInf.name = "word.doc";
 				 */
-				attachmentInf.name = "word.doc";
 				return attachmentInf;
 			}
 		}
@@ -157,11 +158,7 @@
 			}
 		}
 		
-		htwb.editAttachmentAsDoc({filename:"word.doc",success:function(){
-			/**
-			 * alert('123');
-			 */
-		}});
+		htwb.editAttachmentAsDoc();
 	}
 	
 	
