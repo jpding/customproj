@@ -7,6 +7,19 @@ var repo  = BeanGetter.getBean(com.succez.metadata.api.MetaRepository);
 var resourceBrowser = BeanGetter.getBean(com.succez.security.api.restree.ResourceBrowser);
 var expContextFactory = BeanGetter.getBean(com.succez.security.api.LoginExpContextFactory);
 
+var ExpEngine = com.succez.commons.exp.ExpEngine;
+
+/**
+ * 2014-12-3 修改外网演示DEMO 
+ *   1.权限管理，每个人只能看到相应的目录，
+ *     a.业务人员
+ *     b.法律顾问
+ *     c.部门经理
+ *     d.总经理
+ */
+var URL_SHOWCONTENT = "meta/LAWCONT/analyses/index/newhome/showcontent.action";
+
+
 function main(args){
 	println(login.getUser());
 	//println(login.getUser().getPermissionChecker());
@@ -32,7 +45,7 @@ function main(args){
  * @return {String}
  */
 function execute(req, res){
-	var entity = repo.getMetaEntity("LAWCONT:/analyses/index/portal_zlbzb");
+	var entity = repo.getMetaEntity("LAWCONT:/analyses/index/portal_func");
 	var doc = getResolvedViewDocument(entity);
 	var selectid = getSelectedId(doc, null);
 	var selectedItem = getSelectedItem(doc, selectid);
@@ -75,6 +88,11 @@ function lefttree(req, res){
 function getResolvedViewDocument(entity){
 	var doc = entity.readContent().asDocument();
 	doc = new PortalPathTransformer(repo, false).perform(doc, entity.getPath());
+	/**
+	 * 处理节点中的显示和隐藏
+	 */
+	transformPermissionProp(doc);
+	
 	var parser = new PortalViewXmlParser(resourceBrowser, login.getUser(),
 														  expContextFactory.getLoginExpContext());
 	var checker = login.getUser().getPermissionChecker();
@@ -84,6 +102,70 @@ function getResolvedViewDocument(entity){
 	parser.setUseViewId(true);
 	doc = parser.parse(doc);
 	return doc;
+}
+
+/**
+ * 由于门户默认的处理是隐藏，而这里要求是disabled，故不能直接使用PortalViewXmlParser中的显示和隐藏条件，必须
+ * 在parse(doc)之前处理掉
+ */
+function transformPermissionProp(doc){
+	var rootElem = doc.selectNodes("//item[@id='root']").get(0);
+	var context = expContextFactory.getLoginExpContext();
+	browseItemsRec(rootElem, context);
+}
+
+var PERM_DISABLED = "disbaled";
+
+/**
+ * 递归遍历
+ * @param {} item
+ */
+function browseItemsRec(elem, context){
+	var prop = elem.element("properties");
+	var visibleExpzz = prop.elementText("visible");
+	if(StringUtils.isNotBlank(visibleExpzz)){
+		var exp = ExpEngine.createExpression(visibleExpzz);
+		exp.compile(context);
+		var hidden = exp.evaluateBoolean(context);
+		println(visibleExpzz+""+hidden);
+		if(!hidden){
+			prop.element("visible").setText("");
+			setItemPropertyRec(elem, PERM_DISABLED, "1");
+			return ;
+		}
+	}
+	
+	var children = elem.element("children");
+	if(children != null){
+		var nodes = children.elements("item");
+		for(var i=0; nodes && i<nodes.size(); i++){
+			var node = nodes.get(i);
+			browseItemsRec(node, context);
+		}
+	}
+}
+
+function setItemPropertyRec(elem, tag, vv){
+	var prop = elem.element("properties");
+	var node = prop.element(tag);
+	if(node == null){
+		node = prop.addElement(tag);
+	}
+	node.setText(vv);
+	
+	var viNode = prop.element("visible");
+	if(viNode){
+		viNode.setText("");
+	}
+	
+	var children = elem.element("children");
+	if(children != null){
+		var nodes = children.elements("item");
+		for(var i=0; nodes && i<nodes.size(); i++){
+			var node = nodes.get(i);
+			setItemPropertyRec(node, tag, vv);
+		}
+	}
 }
 
 /**
@@ -272,8 +354,14 @@ ZTreeWrite.prototype.writeProp=function(id , propElem){
 		 * added by djp  2014-11-25
 		 * 这里不使用Ztree url属性，主要是嵌入dwz框架，点击树的时候，经常会直接open页面，而不是直接
 		 * 打开在iframe中
+		 * 
+		 * added by djp 2014-12-3 
+		 * 外网演示增加权限控制
 		 */
-		prop["exurl"] = this.getUrl(propElem, id, path);
+		var disabled = propElem.elementText(PERM_DISABLED);
+		if(disabled != "1"){
+			prop["exurl"] = this.getUrl(propElem, id, path);
+		}
 		prop["target"] = "navTab";
 		prop["path"] = path;
 	}
@@ -295,7 +383,7 @@ ZTreeWrite.prototype.getUrl = function(propElem, id, path){
 //		buffer.append("/home/").append(path.replace(":/", "/"));
 //		buffer.append("?selectedId=").append(id);
 	var enPath = StringEscapeUtils.encodeParamValue(StringEscapeUtils.escapeJavaScript(path));
-	buffer.append(WebUtils.getContextPath(this.req)).append("meta/LAWCONT/analyses/index/newhome/showcontent.action?path=").append(enPath);
+	buffer.append(WebUtils.getContextPath(this.req)).append(URL_SHOWCONTENT).append("?path=").append(enPath);
 	
 	this.getParams(propElem, buffer);
 	
