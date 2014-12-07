@@ -145,6 +145,17 @@
 		var tree = sz.commons.JTree.create({
 			pdom:ulDom,
 			data:data,
+			view:{
+				/**
+				 * 对于没有权限看到的节点，显示成灰色
+				 */
+				fontCss:function(treeId, treeNode){
+					if(treeNode.disabled){
+						return  {background:"black"};
+					}
+					return {};
+				}
+			},
 			callback :{
 				onClick : function(event, treeId, treeNode, clickFlag){
 					if(treeNode.exurl){

@@ -361,6 +361,8 @@ ZTreeWrite.prototype.writeProp=function(id , propElem){
 		var disabled = propElem.elementText(PERM_DISABLED);
 		if(disabled != "1"){
 			prop["exurl"] = this.getUrl(propElem, id, path);
+		}else{
+			prop["disabled"] = "1";
 		}
 		prop["target"] = "navTab";
 		prop["path"] = path;
