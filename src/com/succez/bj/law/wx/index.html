@@ -8,8 +8,8 @@
   <meta name="format-detection"content="telephone=no">
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <title>赛思商业智能</title>
-  <meta name="Keywords" content="赛思商业智能" />
+  <title>企业智能内控</title>
+  <meta name="Keywords" content="企业智能内控" />
   <meta name="description" content="昂贵且难用，你还在迷信国外的BI产品吗？SuccezBI全面超越国外同类产品" />
   <link rel="stylesheet" type="text/css" href="css/live.css">
   <script type="text/javascript" src="js/jquery.js"></script>
@@ -116,7 +116,7 @@
   <div id="end" style="display:none;width:100%;height:100%;background:url(images/fengdi3.jpg) center top no-repeat;background-size:100%">
     <div id="btns">
       <a style="margin-bottom:40px;" href="index.html" id="rewatch">再看一遍</a>
-      <button class="share_btn" style="margin-bottom:200px;"  data-title="赛思商业智能" data-url="" data-des="SuccezBI全面超越国外同类产品" data-pic="images/minilogo.png">分享给好友</button>
+      <button class="share_btn" style="margin-bottom:200px;"  data-title="企业智能内控" data-url="" data-des="法律风险智能管理平台(i&BI-MOL)" data-pic="images/minilogo.png">分享给好友</button>
     </div>
     <div class="weixin_layout"></div>
     <script type="text/javascript" src="js/zepto.min.js"></script>
@@ -181,11 +181,6 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
   
   </script>
   <script type="text/javascript">
-    /**
-     * author: jasonshan && jianminlu
-     * update: 2014-05-26 22:03
-     * version: v2.0
-     */
           /* ua */
           var UA = function(){
             var userAgent = navigator.userAgent.toLowerCase();
@@ -208,16 +203,13 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
           };*/
 
 
-        /**
-     * mSahre 移动端分享功能 新闻客户端
-     */
         var mShare = {
           main: function(o){
             var _this = this;
             var d = {
-              title: "赛思商业智能",
-              pic: "images/115.jpg",
-              des: "SuccezBI全面超越国外同类产品",
+              title: "企业智能内控",
+              pic: "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
+              des: "法律风险智能管理平台(i&BI-MOL)",
               url: document.location.href
             };
             var ua = UA();
@@ -237,9 +229,9 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
                 break;
               default:
                 window.location = "http://share.v.t.qq.com/index.php?c=share&a=index&appkey=801378464&url="
-                + document.location.href + "&title="+"赛思商业智能"+"&pic="
-                + "images/115.jpg"+"&des="
-                + "SuccezBI全面超越国外同类产品";
+                + document.location.href + "&title="+"企业智能内控"+"&pic="
+                + "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg"+"&des="
+                + "法律风险智能管理平台(i&BI-MOL)";
                 break;
             };
           },
@@ -247,9 +239,9 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             var _this = this;
             $("body").on("click",".share_btn",function(){
               _this.main({
-                title: "赛思商业智能",
-                pic: "images/115.jpg",
-                des: "SuccezBI全面超越国外同类产品",
+                title: "企业智能内控",
+                pic: "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
+                des: "法律风险智能管理平台(i&BI-MOL)",
                 url: document.location.href
               });
             });
@@ -262,10 +254,10 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             WeixinJSBridge.on('menu:share:appmessage',
             function(argv) {
                 WeixinJSBridge.invoke('sendAppMessage', {
-                    "img_url": "images/115.jpg",
+                    "img_url": "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
                     "link": document.location.href,
-                    "desc": "SuccezBI全面超越国外同类产品",
-                    "title": "赛思商业智能"
+                    "desc": "法律风险智能管理平台(i&BI-MOL)",
+                    "title": "企业智能内控"
                 },
                 function(res) {
                     document.location.href = window.shareData.timeLineLink;
@@ -274,12 +266,12 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             WeixinJSBridge.on('menu:share:timeline',
             function(argv) {
                 WeixinJSBridge.invoke('shareTimeline', {
-                    "img_url": "images/115.jpg",
+                    "img_url": "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
                     "img_width": "640",
                     "img_height": "640",
                     "link": document.location.href,
-                    "desc": "SuccezBI全面超越国外同类产品",
-                    "title":"赛思商业智能"
+                    "desc": "法律风险智能管理平台(i&BI-MOL)",
+                    "title":"企业智能内控"
                 },
                 function(res) {
                     document.location.href = window.shareData.timeLineLink;
