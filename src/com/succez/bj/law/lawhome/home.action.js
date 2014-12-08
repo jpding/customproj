@@ -363,6 +363,7 @@ ZTreeWrite.prototype.writeProp=function(id , propElem){
 			prop["exurl"] = this.getUrl(propElem, id, path);
 		}else{
 			prop["disabled"] = "1";
+			prop["exurl"] = "/meta/LAWCONT/analyses/index/newhome/disabled.ftl";
 		}
 		prop["target"] = "navTab";
 		prop["path"] = path;
