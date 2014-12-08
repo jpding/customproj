@@ -367,6 +367,11 @@ ZTreeWrite.prototype.writeProp=function(id , propElem){
 		}
 		prop["target"] = "navTab";
 		prop["path"] = path;
+	}else{
+		var disabled = propElem.elementText(PERM_DISABLED);
+		if(disabled == "1"){
+			prop["disabled"] = "1";
+		}
 	}
 	
 //		prop.put("target", "_self");
