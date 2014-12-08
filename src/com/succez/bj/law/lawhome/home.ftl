@@ -151,7 +151,7 @@
 				 */
 				fontCss:function(treeId, treeNode){
 					if(treeNode.disabled){
-						return  {background:"black"};
+						return  {background:"#eee"};
 					}
 					return {};
 				}
