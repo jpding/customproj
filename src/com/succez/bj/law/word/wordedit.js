@@ -17,8 +17,6 @@ var MyByteArrayOutputStream = com.succez.commons.util.io.MyByteArrayOutputStream
 var MyByteArrayInputStream  = com.succez.commons.util.io.MyByteArrayInputStream;
 
 var URLDecoder = java.net.URLDecoder;
-var Document = com.aspose.words.Document;
-var ProtectionType = com.aspose.words.ProtectionType;
 var NumberUtils    = com.succez.commons.util.NumberUtils;
 var StringEscapeUtils = com.succez.commons.util.StringEscapeUtils;
 var ActionUtils = com.succez.commons.webctrls.domain.ActionUtils;
@@ -29,6 +27,22 @@ var jsonMapper = new org.codehaus.jackson.map.ObjectMapper();
 var HttpServletResponse = javax.servlet.http.HttpServletResponse;
 var FileOutputStream    = java.io.FileOutputStream;
 var FileInputStream    = java.io.FileInputStream;
+
+var Document = com.aspose.words.Document;
+var ProtectionType = com.aspose.words.ProtectionType;
+var DocumentBuilder = com.aspose.words.DocumentBuilder;
+var HeaderFooter = com.aspose.words.HeaderFooter;
+var HeaderFooterType = com.aspose.words.HeaderFooterType;
+var HorizontalAlignment = com.aspose.words.HorizontalAlignment;
+var Paragraph = com.aspose.words.Paragraph;
+var RelativeHorizontalPosition = com.aspose.words.RelativeHorizontalPosition;
+var RelativeVerticalPosition = com.aspose.words.RelativeVerticalPosition;
+var Section = com.aspose.words.Section;
+var SectionCollection = com.aspose.words.SectionCollection;
+var Shape = com.aspose.words.Shape;
+var ShapeType = com.aspose.words.ShapeType;
+var VerticalAlignment = com.aspose.words.VerticalAlignment;
+var WrapType = com.aspose.words.WrapType;
 
 com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
 
@@ -102,10 +116,48 @@ function downloadword(req, res){
 				"utf-8", null, "word.doc");
 		
 		var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
-		writeWord(input, res, downloadtype);
+		if(req.print=="1"){
+			printWord(input, res);
+		}else{
+			writeWord(input, res, downloadtype);
+		}
 	}finally{
 		input.close();
 	}
+}
+
+/**
+ * 打印word
+ */
+function printWord(input, res){
+	var out = res.getOutputStream();
+	try{
+		var doc = new Document(input);
+		var imgIn = getWaterMarkerImg();
+		try{
+			insertIntoWatermark(doc, imgIn);
+			doc.acceptAllRevisions();
+			doc.protect(ProtectionType.READ_ONLY);
+			//1 doc  8 docx
+			doc.save(out,1);
+		}finally{
+			imgIn.close();
+		}
+	}finally{
+		out.close();
+	}
+}
+
+/**
+ * 返回水印图片，其规则是从水印表里面，根据当前用户获取相应的图片
+ */
+function getWaterMarkerImg(){
+	var params = {};
+	params["facttable"] = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/sygl/models/forms/SYGL";
+	params["keyfield"] = "CREATEUSER";
+	params["keys"] = sz.security.getCurrentUser().id;
+	params["wordfield"] = "ATTACHMENT1";
+	return getWordInputStream(params);
 }
 
 /**
@@ -184,10 +236,10 @@ function getDownloadParam(req){
 
 /**
  * 获取事实表中的word流
- * @param {} factTable  事实表全路径
+ * @param {} facttable  事实表全路径
  * @param {} keyfield
  * @param {} keys
- * @param {} wordField
+ * @param {} wordfield
  * @param {} wordName
  */
 function getWordInputStream(args){
@@ -651,6 +703,8 @@ function testGetCIField(){
 	var task = serviceAttachments.getCITask("18907146");
 	println(getCITableFieldValue(task, "LC_CONTRACTINFO", "20141114", "ORG=CSSC&UID=CSSC", "status_"));
 }
+
+
 /**
  * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
  * /meta/LAWCONT/others/test/word/wordedit.action?method=open&facttable=27262991&keyfield=UID&keys=CSSC&wordfield=ATTACHMENT1
@@ -661,4 +715,48 @@ function open(req, res){
 	res.attr("downloadtype","-1");
 	return "wordedit.ftl";
 }
+ */
+
+/**
+ * 插入水印
+ */
+function insertIntoWatermark(doc, imgIn){
+	var watermarkPara = new Paragraph(doc);
+		
+	var shape = createWatermark(doc, imgIn);
+	watermarkPara.appendChild(shape);
+	var sections = doc.getSections();
+	for (var i = 0; i < sections.getCount(); i++) {
+		var sect = sections.get(i);
+		insertWatermarkIntoHeader(watermarkPara, sect, HeaderFooterType.HEADER_PRIMARY);
+		insertWatermarkIntoHeader(watermarkPara, sect, HeaderFooterType.HEADER_FIRST);
+		insertWatermarkIntoHeader(watermarkPara, sect, HeaderFooterType.HEADER_EVEN);
+	}
+	return doc;
+}
+
+function createWatermark(doc, imgIn){
+	var shape = new Shape(doc, ShapeType.IMAGE);
+	shape.getImageData().setImage(imgIn);
+	shape.setWrapType(WrapType.NONE);
+	shape.setBehindText(true);
+	shape.setWidth(500);
+	shape.setHeight(500);
+	shape.setRelativeHorizontalPosition(RelativeHorizontalPosition.PAGE);
+	shape.setHorizontalAlignment(HorizontalAlignment.CENTER);
+	shape.setRelativeVerticalPosition(RelativeVerticalPosition.PAGE);
+	shape.setVerticalAlignment(VerticalAlignment.CENTER);
+	return shape;
+}
+
+function insertWatermarkIntoHeader(watermarkPara, sect, headerType){
+	var header = sect.getHeadersFooters().getByHeaderFooterType(headerType);
+	if(header == null){
+		header = new HeaderFooter(sect.getDocument(), headerType);
+		sect.getHeadersFooters().add(header);
+	}
+	header.appendChild(watermarkPara.deepClone(true));
+}
+/**
+ * ========================插入水印结束====================================
  */
