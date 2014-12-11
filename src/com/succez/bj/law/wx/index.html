@@ -96,15 +96,18 @@
               <div id="sevth" style="background:url(images/8.jpg) center top no-repeat;background-size:100%">
               <div class="fanye"><span>07/10</span></div>
               </div>
-              <div id="tenth" style="background:url(images/9.jpg) center top no-repeat;background-size:100%">
+              <div id="eighth" style="background:url(images/9.jpg) center top no-repeat;background-size:100%">
               <div class="fanye"><span>8/10</span></div>
               </div>
-              <div style="background:url(images/10.jpg) center top no-repeat;background-size:100%">
+              <div id="ninth" style="background:url(images/10.jpg) center top no-repeat;background-size:100%">
               <div class="fanye"><span>9/10</span></div>
               </div>
               
-              <div id="last" style="background:url(images/11.jpg) center top no-repeat;background-size:100%">
-              <div class="fanye"><span>10/10</span></div>
+              <div id="tenth" style="background:url(images/11.jpg) center top no-repeat;background-size:100%">
+           	  	  <div class="fanye"><span>10/10</span></div>
+              </div>
+              <div id="last" style="background:url(images/12.jpg) center top no-repeat;background-size:100%">
+                 <div class="fanye"><span></span></div>
               </div>
               <div id="nnn" style="background:url(images/12.jpg) center top no-repeat;background-size:100%">
                  <div class="fanye"><span>10/10</span></div>
@@ -113,14 +116,16 @@
     
        </div>
   </div>
+  
   <div id="end" style="display:none;width:100%;height:100%;background:url(images/fengdi3.jpg) center top no-repeat;background-size:100%">
     <div id="btns">
       <a style="margin-bottom:40px;" href="index.html" id="rewatch">再看一遍</a>
-      <button class="share_btn" style="margin-bottom:200px;"  data-title="企业智能内控" data-url="" data-des="法律风险智能管理平台(i&BI-MOL)" data-pic="images/minilogo.png">分享给好友</button>
+      <button class="share_btn" style="margin-bottom:200px;"  data-title="企业智能内控" data-url="" data-des="法律风险智能管理平台(i&BI-ELM)" data-pic="images/minilogo.png">分享给好友</button>
     </div>
     <div class="weixin_layout"></div>
     <script type="text/javascript" src="js/zepto.min.js"></script>
   </div>
+  
 <script>
 if(window['ARTICLE_INFO'] && window['ARTICLE_INFO']['catalog_full']){
 function newPgvDetail(){
@@ -208,8 +213,8 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             var _this = this;
             var d = {
               title: "企业智能内控",
-              pic: "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
-              des: "法律风险智能管理平台(i&BI-MOL)",
+              pic: "http://it.succez.com/meta/CommonData/public/law1/logo1.jpg",
+              des: "法律风险智能管理平台(i&BI-ELM)",
               url: document.location.href
             };
             var ua = UA();
@@ -230,8 +235,8 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
               default:
                 window.location = "http://share.v.t.qq.com/index.php?c=share&a=index&appkey=801378464&url="
                 + document.location.href + "&title="+"企业智能内控"+"&pic="
-                + "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg"+"&des="
-                + "法律风险智能管理平台(i&BI-MOL)";
+                + "http://it.succez.com/meta/CommonData/public/law1/logo1.jpg"+"&des="
+                + "法律风险智能管理平台(i&BI-ELM)";
                 break;
             };
           },
@@ -240,8 +245,8 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             $("body").on("click",".share_btn",function(){
               _this.main({
                 title: "企业智能内控",
-                pic: "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
-                des: "法律风险智能管理平台(i&BI-MOL)",
+                pic: "http://it.succez.com/meta/CommonData/public/law1/logo1.jpg",
+                des: "法律风险智能管理平台(i&BI-ELM)",
                 url: document.location.href
               });
             });
@@ -254,9 +259,9 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             WeixinJSBridge.on('menu:share:appmessage',
             function(argv) {
                 WeixinJSBridge.invoke('sendAppMessage', {
-                    "img_url": "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
+                    "img_url": "http://it.succez.com/meta/CommonData/public/law/logo1.jpg",
                     "link": document.location.href,
-                    "desc": "法律风险智能管理平台(i&BI-MOL)",
+                    "desc": "法律风险智能管理平台(i&BI-ELM)\r\n最佳分辨率：1136*640",
                     "title": "企业智能内控"
                 },
                 function(res) {
@@ -266,11 +271,11 @@ else if(typeof(pgvMain) == 'function'){if(typeof(whatCatalog) != 'undefined'){pv
             WeixinJSBridge.on('menu:share:timeline',
             function(argv) {
                 WeixinJSBridge.invoke('shareTimeline', {
-                    "img_url": "http://gallery.succez.com/meta/CommonData/public/law/law/logo.jpg",
+                    "img_url": "http://it.succez.com/meta/CommonData/public/law1/logo1.jpg",
                     "img_width": "640",
                     "img_height": "640",
                     "link": document.location.href,
-                    "desc": "法律风险智能管理平台(i&BI-MOL)",
+                    "desc": "法律风险智能管理平台(i&BI-ELM)\r\n最佳分辨率：1136*640",
                     "title":"企业智能内控"
                 },
                 function(res) {
