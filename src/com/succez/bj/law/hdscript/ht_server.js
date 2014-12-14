@@ -7,12 +7,13 @@ var WIFlowService = com.succez.bi.wi.WIFlowService;
 var WIUtilStartInstance = com.succez.bi.wi.util.WIUtilStartInstance;
 var WIWebUtilParams     = com.succez.bi.wi.util.web.WIWebUtilParams;
 var ObjectMapper        = org.codehaus.jackson.map.ObjectMapper;
-var StringUtils         = com.succez.commons.util.StringUtils;
 var CIUtilDataInsert = com.succez.bi.ci.util.CIUtilDataInsert;
 var MetaRepository = com.succez.metadata.api.MetaRepository;
 var CITask = com.succez.bi.ci.meta.CITask;
 var ActionCIAddDataComponent = com.succez.bi.ci.impl.pages.cidatamgr.adddata.ActionCIAddDataComponent;
+
 var NumberUtils = com.succez.commons.util.NumberUtils;
+var StringUtils         = com.succez.commons.util.StringUtils;
 
 function main(args){
 	var params = {"form":"STARTFORM"};
@@ -208,12 +209,6 @@ function genHTBHNum(userId){
 /**
  *  通过脚本自动添加数据
  */
-var BeanGetter = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
-var ActionCIAddDataComponent = com.succez.bi.ci.impl.pages.cidatamgr.adddata.ActionCIAddDataComponent;
-var CIUtilDataInsert = com.succez.bi.ci.util.CIUtilDataInsert;
-var MetaRepository = com.succez.metadata.api.MetaRepository;
-var CITask = com.succez.bi.ci.meta.CITask;
-var NumberUtils = com.succez.commons.util.NumberUtils;
 
 function synData(uid, userId){
 	var values = getPlanValues(uid);
