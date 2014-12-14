@@ -11,7 +11,7 @@
 				<div class="header">
 					<div class="left"><em></em></div>
 					<div class="right">
-						<div>您没有权限访问该模块，请联系管理员!</div>
+						<div>演示系统，功能未开放!</div>
 						<div></div>
 					</div>	
 				</div>

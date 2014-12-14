@@ -149,8 +149,8 @@ body, #splitBar { background:#e5edef;}
 
 #header, #header .headerNav { background:url(./images/header_02.png) repeat-x;}
 #header { background-color:#102c4a;}
-#header .logo { background:url(./images/header_01.png) no-repeat;}
-#header .right { background:url(./images/top_right.png) no-repeat;}
+#header .logo { background:url(./images/header_01.jpg) no-repeat #f6f6f6;}
+#header .right { background-color:#f6f6f6;}
 #header .nav li { float:left; margin-left:-1px; padding:0 8px; line-height:11px; background:url(./images/listLine.png) no-repeat;}
 #header .nav li a { color:#b9ccda;}
 #header .themeList li div { background:url(./images/themeButton.png) no-repeat;}

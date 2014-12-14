@@ -41,6 +41,7 @@
 				<ul>
 					<li class="selected"><a href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_func&showtype=')}"><span>功能导航</span></a></li>
 					<li><a id="map_yw" href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_busiflow&showtype=tree')}"><span>业务流程图</span></a></li>
+					<li><a id="map_yw" href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_busiflow&showtype=tree')}"><span>审批流程图</span></a></li>
 					<!--<li><a id="pmsg" href="${url('/meta/bbs?shownavbar=false#boardid=pmsg')}" target="navTab" external="true" rel="pmsg"><span>我的消息</span></a></li>-->
 					<!--<li><a href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_anal&showtype=tree')}"><span>决策分析</span></a></li>-->
 					<li><a id="lawrepo" href="${url("/meta/LAWCONT/analyses/法律知识库/portal")}" target="_blank"><span>法律知识库</span></a></li> 
@@ -151,7 +152,7 @@
 				 */
 				fontCss:function(treeId, treeNode){
 					if(treeNode.disabled){
-						return  {background:"#BBBBBB"};
+						return  {color:"#eee"};
 					}
 					return {};
 				}
