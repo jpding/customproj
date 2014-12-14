@@ -1,50 +1,30 @@
 function getUserManager(initiator) {
-	var user = sz.security.getUser(initiator, true);
-	var orgid = user.org.id;
-	var userlist = sz.security.listUsers();
-	for (var i = 0; i < userlist.length; i++) {
-		var sib = userlist[i];
-		if (sib.org.id != orgid) {
-			continue;
-		}
-		if (sib.isRole("部门领导")) {
-			return sib.id;
-		}
-	}
-
-	throw new Error('找不到用户“' + user.id + "”的负责人，请查看该部门下是否有用户设置了“部门经理”角色!");
+	return getUserByStarter(initiator, "部门领导");
 }
 
+/**
+ * 根据人员、角色，返回人员对应部门中包含有roleName角色的人员
+ * @param {} starter
+ * @param {} roleName
+ * @return {}
+ */
 function getUserByStarter(starter, roleName) {        
 	var user = sz.security.getUser(starter, true);
-        print("送审人员："+user.name);
+    print("送审人员："+user.name);
 	var orgid = user.org.id;
-	var userlist = sz.security.listUsers();
-	for (var i = 0; i < userlist.length; i++) {
-		var sib = userlist[i];
-                print("index："+i);
-                print("人员id："+sib.id);
-                print("人员名称："+sib.name);
-                print("人员机构："+sib.org);
-                print("当前机构："+orgid);
-		if (sib.org.id != orgid) {
-			continue;
-		}
-		if (sib.isRole(roleName)) {
-			return sib.id;
-		}
-	}
-
-	throw new Error('找不到用户“' + user.id + "”的负责人，请查看该部门下是否有用户设置了“"+roleName+"”角色!");
+	return getUserByRole(orgid, roleName);
 }
 
+/**
+ * 返回部门中包含该角色的人员，如果有多个相同的角色的人员，只返回查找到的第一个
+ * @param {} dptid
+ * @param {} roleName
+ * @return {}
+ */
 function getUserByRole(dptid, roleName) {
-	var userlist = sz.security.listUsers();
+	var userlist = sz.security.listUsers(dptid, false);
 	for (var i = 0; i < userlist.length; i++) {
 		var sib = userlist[i];
-		if (sib.org.id != dptid) {
-			continue;
-		}
 		if (sib.isRole(roleName)) {
 			return sib.id;
 		}
@@ -66,6 +46,14 @@ function onTaskAssigned(flow, event, task, vars){
 	
 }
 
+/**
+ * 生成合同流水号
+ * @param {} repo
+ * @param {} task
+ * @param {} period
+ * @param {} hierachy
+ * @return {}
+ */
 function generateDetailGrainId(repo, task, period, hierachy) {
 	var uid = java.util.UUID.randomUUID().toString();
 	return com.succez.commons.util.StringUtils.replace(uid, "-", "");
