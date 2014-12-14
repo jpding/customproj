@@ -68,11 +68,6 @@ function listRisk(){
 	return result;
 }
 
-function generateDetailGrainId() {
-	var uid = java.util.UUID.randomUUID().toString();
-	return StringUtils.replace(uid, "-", "");
-}
-
 /**
  * 根据风险集合表里面查询出来的数据，生成表单字段
  * @param {} risk
@@ -226,12 +221,6 @@ function synData(uid, userId){
 		addData("LAWCONT:/collections/合同管理/LC_CONT_CRIT", "ORG="+user.org.id, mp);
 		println("加入数据：uid:"+mp["UID"]+";CONT_ID:"+uid+";user:"+userId);
 	}
-}
-
-
-function generateDetailGrainId() {
-	var uid = java.util.UUID.randomUUID().toString();
-	return com.succez.commons.util.StringUtils.replace(uid, "-", "");
 }
 
 function getPlanValues(uid){
