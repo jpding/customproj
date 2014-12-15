@@ -1,5 +1,5 @@
 <#--
-@depends sz.commons.html,sz.commons.jtree
+@depends sz.commons.html,sz.commons.jtree,sz.metadata.pmessage
 -->
 <@sz.commons.htmlDirective>	
 	<@sz.commons.html.head>
@@ -23,6 +23,11 @@
 		#header .nav {
 			top:18px;
 		}
+		
+		#message span{
+			position:relative;
+			top:-8px;
+		}
 	</style>
 	<div id="layout">
 		<div id="header">
@@ -31,7 +36,7 @@
 				<span class="right">
 					<ul class="nav">
 						<li><a href="${url('/personal#page=password')}" target="_blank">${login().getUser().getName()}</a></li>
-						<li><a href="${url('/meta/bbs?shownavbar=false')}" target="_blank">论坛</a></li>
+						<li><a id="message" href="javascript:sz.metadata.PMessage.showUnreadMessage(this)" onclick="javascript:sz.metadata.PMessage.showUnreadMessage(this);return false;">消息</a></li>
 						<li><a href="${url('/logout')}">注销</a></li>
 					</ul>
 				</span>
@@ -84,7 +89,7 @@
 				
 				<div class="navTab-panel tabsPageContent layoutBox">
 					<div class="page unitBox">
-						<iframe src="${url('/meta/LAWCONT/analyses/index/newhome.ftl')}" id="framehome" style="width:100%;height:552px;" frameborder="no" border="0" marginwidth="0" marginheight="0" name="framehome"></iframe>
+						<iframe src="${url('/meta/LAWCONT/analyses/index/newhome.ftl')}" id="framehome" style="width:100%;height:492px;" frameborder="no" border="0" marginwidth="0" marginheight="0" name="framehome"></iframe>
 					</div>
 				</div>
 			</div>
@@ -102,6 +107,7 @@
 				debug:false,	// 调试模式 【true|false】
 				callback:function(){
 					initEnv2();
+					sz.metadata.PMessage.queryMessageCount($("#message"));
 					
 					var hrefArr = ['#pmsg'];
 					$.each(hrefArr, function(k, v){
