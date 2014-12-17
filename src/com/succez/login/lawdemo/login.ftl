@@ -55,54 +55,47 @@
 			
 			<#-- 设置背景图片，便于响应鼠标响应事件 -->
 			<div>
-				<table id="__01" width="613" height="792" border="0" cellpadding="0" cellspacing="0">
+				<table id="__01" width="313" height="284" border="0" cellpadding="0" cellspacing="0" style="background-color:red;">
 					<tr>
-						<td colspan="6">
-							<img src="img/_r2_c4_01.gif" width="612" height="254" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="254" alt=""></td>
-					</tr>
-					<tr>
-						<td rowspan="5">
-							<img src="img/_r2_c4_02.gif" width="150" height="538" alt=""></td>
 						<td align="left" valign="top">
-							<img src="img/_r2_c4_03.gif" width="95" height="65" alt=""></td>
-						<td colspan="2">
-							<img src="img/_r2_c4_04.gif" width="115" height="65" alt=""></td>
-						<td rowspan="2" align="left" valign="top">
-							<img src="img/_r2_c4_05.jpg" width="102" height="93" alt=""></td>
-						<td rowspan="5">
-							<img src="img/_r2_c4_06.gif" width="150" height="538" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="65" alt=""></td>
-					</tr>
-					<tr>
+							<img src="img/t2_01.jpg" width="95" height="72" alt=""></td>
 						<td colspan="2" rowspan="2" align="left" valign="top">
-							<img src="img/_r2_c4_07.gif" width="96" height="111" alt=""></td>
-						<td rowspan="4">
-							<img src="img/_r2_c4_08.gif" width="114" height="473" alt=""></td>
+							<img src="img/t2_02.jpg" width="120" height="83" alt=""></td>
+						<td rowspan="2" align="left" valign="top">
+							<img src="img/t2_03.jpg" width="97" height="83" alt=""></td>
 						<td>
-							<img src="img/spacer.gif" width="1" height="28" alt=""></td>
+							<img src="img/spacer.gif" width="1" height="72" alt=""></td>
 					</tr>
 					<tr>
-						<td rowspan="3">
-							<img src="img/_r2_c4_09.gif" width="102" height="445" alt=""></td>
+						<td rowspan="2" align="left" valign="top">
+							<img src="img/t2_04.jpg" width="95" height="85" alt=""></td>
 						<td>
-							<img src="img/spacer.gif" width="1" height="83" alt=""></td>
+							<img src="img/spacer.gif" width="1" height="11" alt=""></td>
 					</tr>
 					<tr>
-						<td align="left" valign="top">
-							<img src="img/_r2_c4_10.gif" width="95" height="107" alt=""></td>
-						<td rowspan="2">
-							<img src="img/_r2_c4_11.gif" width="1" height="362" alt=""></td>
+						<td colspan="3">
+							<img src="img/t2_05.jpg" width="217" height="74" alt=""></td>
 						<td>
-							<img src="img/spacer.gif" width="1" height="107" alt=""></td>
+							<img src="img/spacer.gif" width="1" height="74" alt=""></td>
+					</tr>
+					<tr>
+						<td colspan="2" align="left" valign="top">
+							<img src="img/t2_06.jpg" width="96" height="126" alt=""></td>
+						<td colspan="2">
+							<img src="img/t2_07.jpg" width="216" height="126" alt=""></td>
+						<td>
+							<img src="img/spacer.gif" width="1" height="126" alt=""></td>
 					</tr>
 					<tr>
 						<td>
-							<img src="img/_r2_c4_12.gif" width="95" height="255" alt=""></td>
+							<img src="img/spacer.gif" width="95" height="1" alt=""></td>
 						<td>
-							<img src="img/spacer.gif" width="1" height="255" alt=""></td>
+							<img src="img/spacer.gif" width="1" height="1" alt=""></td>
+						<td>
+							<img src="img/spacer.gif" width="119" height="1" alt=""></td>
+						<td>
+							<img src="img/spacer.gif" width="97" height="1" alt=""></td>
+						<td></td>
 					</tr>
 				</table>
 			</div>
