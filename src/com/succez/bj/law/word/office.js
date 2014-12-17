@@ -79,7 +79,7 @@
   		/**
   		 * downloadtype 在wordedit.ftl中定义
   		 */
-  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random();
+  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random()+"&version="+this.getWordVersion();
 		this.editOffice = sz.sys.namespace("szword");
 		
 		this.editOffice.getArgs = function(){
@@ -195,6 +195,23 @@
 		var editargs = this.editOffice.getArgs();
 		if (editargs && editargs.initPlugin) {
 			editargs.initPlugin(this.aodControl);
+		}
+	}
+	
+	/**
+	 * 返回word版本号
+	 */
+	WSOffice.prototype.getWordVersion = function(){
+		return this.aodControl.GetOfficeVersion("Word.Application"); 
+	}
+	
+	/**
+	 * 关闭文件
+	 */
+	WSOffice.prototype.closeFile = function(){
+		if(this.aodControl){
+			this.aodControl.close(); 
+			this.aodControl = null;
 		}
 	}
 

@@ -21,7 +21,10 @@ menubar必须设置为1，即显示menubar，否则会出现一个黑线，然�
 			<PARAM NAME="Menubar" VALUE="1">
 		</OBJECT>
 		<@script>
-			$$(".sz-ci-wsoffice");
+			var wsOffice = $$(".sz-ci-wsoffice");
+			$(window).unload(function(){
+				wsOffice.closeFile();
+			})
 		</@script>
 	</div>
 </@sz.commons.html.simplehtml>
