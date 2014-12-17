@@ -136,7 +136,7 @@ function downloadword(req, res){
 			printWord(input, res);
 		}else{
 			log("downloadword", params);
-			writeWord(input, res, downloadtype);
+			writeWord(input, res, downloadtype, params.version == "Word.Application.11");
 		}
 	}finally{
 		input.close();
@@ -273,6 +273,7 @@ function getDownloadParam(req){
 	obj.wordfield = req.wordfield;
 	obj.wordname = req.wordname;
 	obj.downloadtype = req.downloadtype;
+	obj.version = req.version;
 	return obj;
 }
 
@@ -468,7 +469,7 @@ function downloadFormWord(req, res){
 		}else if(state=="20"){
 			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
 		}
-		writeWord(bins, res, downloadType);			
+		writeWord(bins, res, downloadType, req.version == "Word.Application.11");			
 	}
 }
 
@@ -728,7 +729,7 @@ function downloadDraftAttachment(req, res, task, id){
 				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
 			}
 			println("downloadDraftAttachment=======downloadType=="+downloadType);
-			writeWordByDoc(doc, out, downloadType);
+			writeWordByDoc(doc, out, downloadType, req.version == "Word.Application.11");
 		}finally{
 			out.close();
 		}
