@@ -15,7 +15,7 @@ menubar必须设置为1，即显示menubar，否则会出现一个黑线，然�
 	</style>
 	<div class="sz-ci-wsoffice" data-szclass="sz.ci.WSOffice">
 		<@script src="office.js"/>
-		<OBJECT id="wsofficeobject" class="sz-ci-wsoffice-plugs" codeBase="${url('/static-file/wsoffice/wsoffice(2,3,0,1).cab#version=2,3,0,1')}" classid="clsid:33A018F5-DF85-4D66-9C66-4E5BB0360092">
+		<OBJECT id="wsofficeobject" class="sz-ci-wsoffice-plugs" data-namespace='${namespace!""}' codeBase="${url('/static-file/wsoffice/wsoffice(2,3,0,1).cab#version=2,3,0,1')}" classid="clsid:33A018F5-DF85-4D66-9C66-4E5BB0360092">
 			<PARAM NAME="Titlebar" VALUE="0">
 			<PARAM NAME="Toolbars" VALUE="1">
 			<PARAM NAME="Menubar" VALUE="1">

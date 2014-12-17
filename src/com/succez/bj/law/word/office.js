@@ -74,39 +74,51 @@
 		this.aodControl = this.$plugin[0];
 		
   		//var download = "/meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable={0}&keyfield={1}&keys={2}&wordfield={3}";
-  		var downloadUrl = WSOffice.DOWNLOADURL ;
-  		var downloadUrlParam = sz.utils.setParameter("method", "downloadword");
-  		/**
-  		 * downloadtype 在wordedit.ftl中定义
-  		 */
-  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random()+"&version="+this.getWordVersion();
-		this.editOffice = sz.sys.namespace("szword");
-		
-		this.editOffice.getArgs = function(){
-			return null;
-		}
-		
-		this.editOffice.getOpenUrl = function() {
-			return sz.sys.ctx(downloadUrl);
-	    }
-	    
-	    var saveArgs = {};
-	    var saveParams = sz.utils.getParametersOfUrl();
-	    for(var i=0; i<saveParams.length; i++){
-	    	var param = saveParams[i];
-	    	saveArgs[param[0]] = param[1];
-	    }
-	    saveArgs["method"] = "uploadWord";
-	    saveArgs["url"]    = WSOffice.DOWNLOADURL;
-	    
-	    this.editOffice.getSaveArgs = function() {
-		    return saveArgs;
-	    }
-	    this.editOffice.getFileName = function() {
-		    return "word.doc";
-	    }
-	    this.editOffice.success = function(info) {
-		    alert('save success!');
+	    var ns = this.$plugin.data("namespace");
+	    if(ns){
+	    	this.editOffice = window.opener.sz.sys.namespace(ns);
+	    	
+	    	var openUrl = this.editOffice.getOpenUrl();
+	    	
+	    	var self = this;
+	    	this.editOffice.getOpenUrl = function(){
+	    		return openUrl + "&version=" + self.getWordVersion();
+	    	}
+	    }else{
+	    	var downloadUrl = WSOffice.DOWNLOADURL ;
+	  		var downloadUrlParam = sz.utils.setParameter("method", "downloadword");
+	  		/**
+	  		 * downloadtype 在wordedit.ftl中定义
+	  		 */
+	  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random()+"&version="+this.getWordVersion();
+			this.editOffice = sz.sys.namespace("szword");
+			
+			this.editOffice.getArgs = function(){
+				return null;
+			}
+			
+			this.editOffice.getOpenUrl = function() {
+				return sz.sys.ctx(downloadUrl);
+		    }
+		    
+		    var saveArgs = {};
+		    var saveParams = sz.utils.getParametersOfUrl();
+		    for(var i=0; i<saveParams.length; i++){
+		    	var param = saveParams[i];
+		    	saveArgs[param[0]] = param[1];
+		    }
+		    saveArgs["method"] = "uploadWord";
+		    saveArgs["url"]    = WSOffice.DOWNLOADURL;
+		    
+		    this.editOffice.getSaveArgs = function() {
+			    return saveArgs;
+		    }
+		    this.editOffice.getFileName = function() {
+			    return "word.doc";
+		    }
+		    this.editOffice.success = function(info) {
+			    alert('save success!');
+		    }
 	    }
 	}
 
@@ -174,6 +186,7 @@
 			this.showError("sz.ci.wsoffice.error.getfilename");
 			return;
 		}
+		
 		var name = this.editOffice.getFileName();
 		if (!name) {
 			this.showError("sz.ci.wsoffice.error.filename");

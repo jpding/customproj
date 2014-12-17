@@ -153,7 +153,10 @@
 					    nargs.success(JSON.parse(info));
 					    success && success();
 				    }
-				    window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
+				    /**
+				     * window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
+				     */
+				    window.open(sz.sys.ctx(upload.WORD_URL+"?namespace=" + nmspace));
 			    });
 			}
 		}

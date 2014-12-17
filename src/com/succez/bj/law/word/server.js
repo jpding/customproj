@@ -9,13 +9,24 @@ function main(args){
 }
 
 function onserverstartup(){
+	/**
+	 * 创建视图
+	 */
 	var entity = sz.metadata.get("Settings:/scripts/views.txt");
 	if(entity != null){
 		var content = entity.content;
 		createViews(content);
 	}
 	
+	/**
+	 * 创建word备份表
+	 */
 	createWordBackup();
+	
+	/**
+	 * 创建word编辑冲突表
+	 */
+	
 }
 
 function createViews(content){

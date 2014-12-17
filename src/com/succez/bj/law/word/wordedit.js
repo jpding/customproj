@@ -94,6 +94,9 @@ function main(args){
  */
 function execute(req, res){
 	res.attr("downloadtype",ProtectionType.READ_ONLY);
+	if(req.namespace){
+		res.attr("namespace",req.namespace);
+	}
 	return "wordedit.ftl";
 }
 
@@ -122,6 +125,7 @@ function log(method, params){
  * @param {} res
  */
 function downloadword(req, res){
+	println("download:"+req.getRequestURI());
 	var params = getDownloadParam(req);
 	var ins = getWordInputStream(params);
 	var input = java.io.BufferedInputStream(ins);
@@ -432,6 +436,7 @@ function checkSaveWord(fileObj){
  * @param {} res
  */
 function downloadFormWord(req, res){
+	println("download:"+req.getRequestURI());
 	var id = req.id;
 	var resid = req.path;
 	var datahierarchies = req.datahierarchies;
