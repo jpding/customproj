@@ -80,7 +80,7 @@
 				 */
 				fontCss:function(treeId, treeNode){
 					if(treeNode.disabled){
-						return  {background:"black"};
+						return  {color:"gray"};
 					}
 					return {};
 				}
