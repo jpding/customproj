@@ -27,6 +27,7 @@ var jsonMapper = new org.codehaus.jackson.map.ObjectMapper();
 var HttpServletResponse = javax.servlet.http.HttpServletResponse;
 var FileOutputStream    = java.io.FileOutputStream;
 var FileInputStream    = java.io.FileInputStream;
+var StringReader = java.io.StringReader;
 
 var Document = com.aspose.words.Document;
 var ProtectionType = com.aspose.words.ProtectionType;
@@ -43,6 +44,8 @@ var Shape = com.aspose.words.Shape;
 var ShapeType = com.aspose.words.ShapeType;
 var VerticalAlignment = com.aspose.words.VerticalAlignment;
 var WrapType = com.aspose.words.WrapType;
+
+var ISDEBUG = true;
 
 com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
 
@@ -92,6 +95,17 @@ function execute(req, res){
 }
 
 /**
+ * 记录日志，便于调试
+ * @param {} method
+ * @param {} params
+ */
+function log(method, params){
+	if(ISDEBUG){
+		println(method+":"+JSON.stringify(params));	
+	}
+}
+
+/**
  * /meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
  * /meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable=27262991&keyfield=UID&keys=23141f39c6a44efb81aaae0e276bb1a2&wordfield=ATTACHMENT1
  * 
@@ -105,8 +119,6 @@ function execute(req, res){
  * @param {} res
  */
 function downloadword(req, res){
-	println("=================================");
-	
 	var params = getDownloadParam(req);
 	var ins = getWordInputStream(params);
 	var input = java.io.BufferedInputStream(ins);
@@ -117,8 +129,10 @@ function downloadword(req, res){
 		
 		var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
 		if(req.print=="1"){
+			log("printword", params);
 			printWord(input, res);
 		}else{
+			log("downloadword", params);
 			writeWord(input, res, downloadtype);
 		}
 	}finally{
@@ -161,32 +175,50 @@ function getWaterMarkerImg(){
 }
 
 /**
- * 
- * @param {} ins  word输入流
+ * 见writeWord2函数
+ * @param {} input
  * @param {} res
+ * @param {} downloadtype
  */
 function writeWord(input, res, downloadtype){
 	var out = res.getOutputStream();
 	try {
-		//var downloadtype = NumberUtils.toInt((params.downloadtype+""), -1);
-		println("downloadtype==========:"+downloadtype);
-		if(downloadtype == -1){
-			IOUtils.copy(input, out);
-		}else{
-			var doc = new Document(input);
-			if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
-				doc.setTrackRevisions(true);
-			}
-			doc.protect(downloadtype);
-			//1 doc  8 docx
-			doc.save(out,1);
-		}
+		writeWordByInputStream(input, out, downloadtype);
 	}
 	finally {
 		out.close();
 	}
 }
 
+/**
+ * word插件向服务器端请求内容时，都通过该函数下载，
+ * @param {} input  word输入流
+ * @param {} out    输出流，一般都是通过res.getOutputStream()获取
+ * @param {} downloadtype
+ */
+function writeWordByInputStream(input, out, downloadtype){
+	//var downloadtype = NumberUtils.toInt((params.downloadtype+""), -1);
+	println("downloadtype==========:"+downloadtype);
+	//downloadtype = -1;
+	if(downloadtype == -1){
+		IOUtils.copy(input, out);
+	}else{
+		var doc = new Document(input);
+		writeWordByDoc(doc, out, downloadtype);
+	}
+}
+
+function writeWordByDoc(doc, out, downloadtype){
+	if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
+		doc.setTrackRevisions(true);
+	}
+	doc.protect(downloadtype);
+	/**
+	 * 2003的格式，有可能在2010下打开有问题，故目前都设置成2007的格式，不在保存成2003的格式
+	 */
+	//1 doc  8 docx
+	doc.save(out,8);
+}
 
 
 /**
@@ -198,6 +230,7 @@ function uploadWord(req, res){
 	/**
 	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
 	 */
+	log("uploadWord", params);
 	//saveWordToDb(params, file);
 }
 
@@ -263,10 +296,15 @@ function getWordInputStream(args){
 	var rs = ds.select(sql, keys);
 	println(sql);
 	if(!rs || rs.length == 0 ){
-		throw new Error('事实表：'+factTable+"中不存在主键："+keyfield+"："+keys+"的数据");
+		var info = '事实表：'+factTable+"中不存在主键："+keyfield+"："+keys+"的数据"; 
+		throw new Error(info);
 	}
 	
 	var blob = rs[0][0];
+	if(blob == null){
+		var info = '事实表：'+factTable+"中不存在主键："+keyfield+"："+keys+"的数据"; 
+		throw new Error(info);
+	}
 	return blob.getBinaryStream();	
 }
 
@@ -285,6 +323,7 @@ function getMetaEntity(args){
  * @param {} file  插件保存时,上传到服务器端的临时文件
  */
 function saveWordToDb(args, file){
+	log("saveWordToDb", args);
 	var entity = getMetaEntity(args);
 	var factObj = entity.getObject();
 	var dsName = factObj.getDataSourceName();
@@ -293,7 +332,7 @@ function saveWordToDb(args, file){
 	var ds = sz.db.getDataSource(dsName);
 	var dialect = ds.getDialect();
 	var updateSql = "update " + dbTableName + " set  "+args.wordfield+"=? where " + dialect.quote(args.keyfield) +"=?";
-	println(updateSql);
+	println("saveWordToDB:"+updateSql);
 	var ins = file.getInputStream();
 	try{
 		ds.update(updateSql,[ins, args.keys]);
@@ -326,6 +365,9 @@ function downloadFormWord(req, res){
 	var fileNameField    = req.fileNameField;
 	var citask = serviceAttachments.getCITask(resid);
 	println("=========downloadFormWord==="+id+";resid:"+resid);
+	if(ISDEBUG){
+		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "fileNameField":datahierarchies});
+	}
 	
 	if(StringUtils.isNotBlank(id)){
 		downloadDraftAttachment(req, res, citask, id);
@@ -481,6 +523,9 @@ function saveWordInForm(req, res){
 	var finf = compileForms.getCIFormCompileInf(formName);
 	var cdbinf = serviceAttachments.getFormField(finf, compName);
 	var srcdwtable = cdbinf.getTableName();
+	if(ISDEBUG){
+		log("saveWordInForm", {"path":path,"formName":formName, "compName":compName, "srcdwtable":srcdwtable});
+	}
 	
 	var state = getAuditState(ciTask, srcdwtable, req.period, req.datahierarchies);
 	println("saving:"+state);
@@ -526,7 +571,7 @@ function getAttachmentInfo(attachment){
 	info["updateTime"] = String.valueOf(attachment.getUpdateTime());
 	var contentType = attachment.getContentType();
 	info["contentType"] = contentType;		
-	println(info);
+	log("getAttachmentInfo", info);
 	return info;
 }
 
@@ -605,18 +650,15 @@ function downloadDraftAttachment(req, res, task, id){
 		/**
 		 * 如果是范本合同  ProtectionType.ALLOW_ONLY_FORM_FIELDS，那么以窗体只读的方式打开
 		 */
-		var downloadType = -1;
-		
-		var doc = new Document(input);
-		if(isTemplateContract(doc)){
-			downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
-		}
-		println("=======downloadType=="+downloadType);
-		doc.protect(downloadType);
 		var out = res.getOutputStream();
 		try{
-			//1 doc  8 docx
-			doc.save(out,1);
+			var downloadType = -1;
+			var doc = new Document(input);
+			if(isTemplateContract(doc)){
+				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
+			}
+			println("downloadDraftAttachment=======downloadType=="+downloadType);
+			writeWordByDoc(doc, out, downloadType);
 		}finally{
 			out.close();
 		}
