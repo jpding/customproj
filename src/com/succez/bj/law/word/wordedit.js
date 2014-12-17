@@ -44,6 +44,9 @@ var Shape = com.aspose.words.Shape;
 var ShapeType = com.aspose.words.ShapeType;
 var VerticalAlignment = com.aspose.words.VerticalAlignment;
 var WrapType = com.aspose.words.WrapType;
+var SaveFormat = com.aspose.words.SaveFormat;
+
+var FunctionNames = com.succez.commons.jdbc.function.FunctionNames;
 
 var ISDEBUG = true;
 
@@ -143,7 +146,7 @@ function downloadword(req, res){
 /**
  * 打印word
  */
-function printWord(input, res){
+function printWord(input, res, is2003){
 	var out = res.getOutputStream();
 	try{
 		var doc = new Document(input);
@@ -153,7 +156,7 @@ function printWord(input, res){
 			doc.acceptAllRevisions();
 			doc.protect(ProtectionType.READ_ONLY);
 			//1 doc  8 docx
-			doc.save(out,1);
+			doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
 		}finally{
 			imgIn.close();
 		}
@@ -179,11 +182,12 @@ function getWaterMarkerImg(){
  * @param {} input
  * @param {} res
  * @param {} downloadtype
+ * @param {} is2003 word版本，是否为2003
  */
-function writeWord(input, res, downloadtype){
+function writeWord(input, res, downloadtype, is2003){
 	var out = res.getOutputStream();
 	try {
-		writeWordByInputStream(input, out, downloadtype);
+		writeWordByInputStream(input, out, downloadtype, is2003);
 	}
 	finally {
 		out.close();
@@ -196,19 +200,24 @@ function writeWord(input, res, downloadtype){
  * @param {} out    输出流，一般都是通过res.getOutputStream()获取
  * @param {} downloadtype
  */
-function writeWordByInputStream(input, out, downloadtype){
+function writeWordByInputStream(input, out, downloadtype, is2003){
 	//var downloadtype = NumberUtils.toInt((params.downloadtype+""), -1);
 	println("downloadtype==========:"+downloadtype);
 	//downloadtype = -1;
-	if(downloadtype == -1){
-		IOUtils.copy(input, out);
-	}else{
+//	if(downloadtype == -1){
+//		IOUtils.copy(input, out);
+//	}else{
 		var doc = new Document(input);
-		writeWordByDoc(doc, out, downloadtype);
-	}
+		writeWordByDoc(doc, out, downloadtype, is2003);
+//	}
 }
 
-function writeWordByDoc(doc, out, downloadtype){
+function writeWordByDoc(doc, out, downloadtype, is2003){
+	/**
+	 * 对下载的word打验证标记
+	 */
+	//doc.getVariables().add(PROP_CHECKVALID, "1");
+	
 	if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
 		doc.setTrackRevisions(true);
 	}
@@ -217,7 +226,7 @@ function writeWordByDoc(doc, out, downloadtype){
 	 * 2003的格式，有可能在2010下打开有问题，故目前都设置成2007的格式，不在保存成2003的格式
 	 */
 	//1 doc  8 docx
-	doc.save(out,8);
+	doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
 }
 
 
@@ -236,7 +245,7 @@ function uploadWord(req, res){
 
 /**
  * 从req获取上传文件，一般只有一个文件，是一个map对象
- * {fileName:"", file:file} 其中fileName是经过编码的，需要解码
+ * {fileName:"", file:file} 其中fileName是经过编码的，需要解码，file是sz.io.FileObject对象
  * @param {} req
  */
 function getUploadFile(req){
@@ -333,6 +342,17 @@ function saveWordToDb(args, file){
 	var dialect = ds.getDialect();
 	var updateSql = "update " + dbTableName + " set  "+args.wordfield+"=? where " + dialect.quote(args.keyfield) +"=?";
 	println("saveWordToDB:"+updateSql);
+	/**
+	 * 验证word文档完整性，避免用户随意打开一个文档，直接点击保存，由于word都有只读打开，或者是修订打开，没权限
+	 * 装入本地的其他文件
+	 */
+	//checkSaveWord(fileObj);
+	
+	/**
+	 * 备份先前存储的文档  TODO
+	 */
+	backupWord(dbTableName, args.wordfield, args.keyfield, args.keys);
+	
 	var ins = file.getInputStream();
 	try{
 		ds.update(updateSql,[ins, args.keys]);
@@ -340,6 +360,62 @@ function saveWordToDb(args, file){
 		ins.close();
 	}
 }
+
+/**
+ * word备份表
+ * @type String
+ */
+var DB_BACKUP_WORD = "SZSYS_CS_WORD";
+
+/**
+ * 在word修改时要对修改之前的word进行存档
+ * SUBMITTIME_  USERID_  PATH_   CONTENT_  
+ * 
+ * submittime_  提交时间
+ * userid_      提交人
+ * path_        文档路径
+ * content_     文档内容
+ */
+function backupWord(factTable, wordfield, keyfield, keyValue){
+	try{
+		var ds = sz.db.getDefaultDataSource();
+		var dialect = ds.getDialect();
+		var sql1 = new java.lang.StringBuilder();
+		sql1.append("insert into ").append(DB_BACKUP_WORD).append("  ");
+		sql1.append("select ");
+		sql1.append(dialect.renderFunction(FunctionNames.CURRENT_TIMESTAMP)).append(",");
+		sql1.append("'"+sz.security.getCurrentUser().id+"'").append(",");
+		sql1.append("'"+factTable+"'").append(",");
+		sql1.append("'"+keyValue+"'").append(",");
+		sql1.append(wordfield);
+		sql1.append(" from ").append(factTable);
+		sql1.append(" where ").append(dialect.quote(keyfield)).append("=?");
+		var sql = sql1.toString();
+		println(sql);
+		ds.update(sql, [keyValue]);
+	}catch(ex){
+		println(ex);
+	}
+}
+
+
+/**
+ * 对保存的word进行验证，避免用户随意装载其他word进行存储，从系统下载的word写一个临时标记，然后对该标记进行验证
+ * 如果标记不存在，那么不予保存
+ */
+function checkSaveWord(fileObj){
+	var ins = file.getInputStream();
+	try{
+		var doc = new Document(ins);
+		var checkSign = doc.getVariables().get(PROP_CHECKVALID);
+		if(checkSign != "1"){
+			throw new Error("提交的文档被重新装入，请在原文档上修改!");
+		}
+	}finally{
+		ins.close();
+	}
+}
+
 
 /**
  * 下载表单中的word文档
@@ -493,12 +569,6 @@ function insertTemplateBefore(file, formDatas){
 	}
 	
 	doc.save(file);
-}
-
-/**
- * 在word修改时要对修改的
- */
-function backupWord(){
 }
 
 /**
@@ -715,6 +785,7 @@ function getCITableFieldValue(task, dwTable, dataperiod, datahierarchies, fieldN
 }
 
 var PROP_TEMPLATE = "succezdoctemplate";
+var PROP_CHECKVALID = "succezwordvalid";
 
 /**
  * 判断是否是范本合同，直接从文档流里面读出，在插入到临时表时，就记录上一个特殊的标记
