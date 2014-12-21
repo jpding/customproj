@@ -13,13 +13,14 @@
 	/**
 	 *	范本引入
 	 */
-	upload.uploadAndEditContractByModel = function($form, compid) {
+	upload.uploadAndEditContractByModel = function($form, compid,callback) {
 		var compObj = $form.getComponent(compid);
 		var val = compObj.getAttachmentValue();
 		if (val != null){
 			upload.editAttachmentAsDoc($form, compid);
 			return;
 		}
+		
 		var uid = $form.getComponent("fb_uid").val();
 		var data = {
 			resid		        : 18907146,
@@ -42,7 +43,7 @@
 			success		      : function(info) {
 				var newInfo = $form.getFormData().getAttachment(compid);
 				compObj.setAttachmentValue(newInfo);
-				upload.editAttachmentAsDoc($form, compid);
+				upload.editAttachmentAsDoc($form, compid,callback);
 			}
 		};
 	
@@ -77,7 +78,7 @@
 	 * 编辑表单中的word文件
 	 * sz.ci.custom.uploadattachment.editAttachmentAsDoc($form, "htwb");
 	 */
-	upload.editAttachmentAsDoc = function($form, compid){
+	upload.editAttachmentAsDoc = function($form, compid,callback){
 		var htwb = $form.getComponent(compid);
 
 		if(!htwb.oldGetAttachmentValue){
@@ -88,19 +89,8 @@
 				if(!attachmentInf){
 					return null;
 				}
-				var customUrl = sz.sys.ctx(upload.WORD_URL);
-				/**
-				 * /cifill/downloadAttachment?resid=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
-				 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord
-				 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord&path=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
-				 */
-				var url = attachmentInf.url;
-				var idx = url.indexOf("?");
-				url = url.substring(idx);
-				var resid = sz.utils.getParameterOfUrl("resid", url);
-				url = sz.utils.setParameterOfUrl("path", resid, url);
-				url = customUrl+sz.utils.setParameterOfUrl("method", "downloadFormWord", url);
-				attachmentInf.url = url;
+				
+				attachmentInf.url = upload.refactorAttachmentUrl("downloadFormWord", attachmentInf.url);
 				if(!attachmentInf.name){
 					attachmentInf.name = "word.doc";
 				}
@@ -161,7 +151,7 @@
 			}
 		}
 		
-		htwb.editAttachmentAsDoc();
+		htwb.editAttachmentAsDoc(callback);
 	}
 	
 	
@@ -177,5 +167,60 @@
 			result[compData.compinf.dbfield] = vv;
 		}
 		return result;
+	}
+	
+	/**
+	 * 生成范本合同：
+	 *   1.如果表单里面还没有合同，那么直接取出范本，根据表单字段生成并存储到草稿中
+	 *   2.如果存在合同，那么最开始应该从合同表单里面取出，在存储的草稿中
+	 *   3.如果存在合同，并且在草稿中，那么就从草稿中重新取出合同
+	 */
+	upload.makeTemplateContract = function($form, compid){
+		var compObj = $form.getComponent(compid);
+		var attachmentVal = compObj.getAttachmentValue();
+		if (attachmentVal != null){
+			/**
+			 * 2、3 从表单或者草稿中取出合同
+			 */
+			var data = {
+				formdatas:JSON.stringify(upload.getFillFormDatas($form)),
+				formName		    : $form.getFormName(),
+				compid		      : compid
+			};
+			
+			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
+			$.post(url, data, function(info){
+				compObj.setAttachmentValue(info);
+				alert("success");
+			});
+		}else{
+			/**
+			 * 1.从范本里面取出合同
+			 */
+			
+		}
+	}
+	
+	/**
+	 * 重构表单中的link地址，改用脚本实现
+	 */
+	upload.refactorAttachmentUrl = function(method, srcUrl){
+		var customUrl = sz.sys.ctx(upload.WORD_URL);
+		/**
+		 * /cifill/downloadAttachment?resid=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
+		 * /cifill/downloadAttachment?resid=18907146&dataperiod=20141221&datahierarchies=ORG%253DtestOrg%2526UID%253D38491bcb84ee4156a67cb2a9608661e4&rowKey=&dwTable=HZ_CONT_INFO&fileContentField=HTWB&fileNameField=FN0
+		 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord
+		 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord&path=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
+		 */
+		var url = srcUrl;
+		var idx = url.indexOf("?");
+		url = url.substring(idx);
+		var resid = sz.utils.getParameterOfUrl("resid", url);
+		url = sz.utils.setParameterOfUrl("path", resid, url);
+		url = customUrl+sz.utils.setParameterOfUrl("method", method, url);
+		/**
+		 * attachmentInf.name = "word.doc";
+		 */
+		return url;
 	}
 })(jQuery)
