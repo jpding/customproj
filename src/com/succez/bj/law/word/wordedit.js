@@ -91,6 +91,7 @@ function main(args){
  * /meta/LAWCONT/others/test/word/wordedit.action?facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
  * @param {} req  req传递的参数见上面
  * @param {} res
+ * @mapping
  */
 function execute(req, res){
 	res.attr("downloadtype",ProtectionType.READ_ONLY);
@@ -98,17 +99,6 @@ function execute(req, res){
 		res.attr("namespace",req.namespace);
 	}
 	return "wordedit.ftl";
-}
-
-/**
- * 记录日志，便于调试
- * @param {} method
- * @param {} params
- */
-function log(method, params){
-	if(ISDEBUG){
-		println(method+":"+JSON.stringify(params));	
-	}
 }
 
 /**
@@ -123,6 +113,7 @@ function log(method, params){
 		ProtectionType.NO_PROTECTION;
  * @param {} req
  * @param {} res
+ * @mapping
  */
 function downloadword(req, res){
 	println("download:"+req.getRequestURI());
@@ -144,6 +135,71 @@ function downloadword(req, res){
 		}
 	}finally{
 		input.close();
+	}
+}
+
+/**
+ * 生成合同文本，返回对应的合同附件信息
+ * @param {} req
+ * @param {} res
+ */
+function makecontract(req, res){
+	println("download:"+req.getRequestURI());
+	var id = req.id;
+	var resid = req.path;
+	var datahierarchies = req.datahierarchies;
+	var dataperiod = req.dataperiod;
+	var rowKey = req.rowKey;
+	var dwTable = req.dwTable;
+	var fileContentField = req.fileContentField;
+	var fileNameField    = req.fileNameField;
+	var citask = serviceAttachments.getCITask(resid);
+	println("=========downloadFormWord==="+id+";resid:"+resid);
+	if(ISDEBUG){
+		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "datahierarchies":datahierarchies});
+	}
+	
+	datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
+	
+	var input = null;
+	/**
+	 * 从草稿或者表单内容中获取相应的word文档流
+	 */
+	if(StringUtils.isNotBlank(id)){
+		input = getContractInputStreamByDraft(citask,id);
+	}else{
+		var myOut = new MyByteArrayOutputStream();
+		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
+					dwTable, fileContentField, fileNameField);
+		input = myOut.asInputStream();
+	}
+	
+	try{
+		var doc = new Document(input);
+		var formDataStr = req.formdatas;
+		if(ISDEBUG){
+			println("formDataStr:"+formDataStr);
+		}
+		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
+		makeTemplateContract(doc, formData);
+		var myOutput = new MyByteArrayOutputStream();
+		doc.save(myOutput, SaveFormat.DOCX);
+//		var filename = StringEscapeUtils.decodeURI(filename);
+		var filename = "testword.doc";
+		var size = myOutput.size();
+		var contentType = "application/msword";
+		var inputStream = myOutput.asInputStream();
+		try {
+			println("filename:"+filename);
+			var attachment = serviceAttachments.saveDraft(citask, id, dataperiod, datahierarchies, rowKey,
+					req.formName, req.compName, filename, contentType, size, inputStream, false);
+			return getAttachmentInfo(attachment);
+		}
+		finally {
+			inputStream.close();
+		}
+	}finally{
+		IOUtils.closeQuietly(input);
 	}
 }
 
@@ -176,7 +232,7 @@ function getWaterMarkerImg(){
 	var params = {};
 	params["facttable"] = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/sygl/models/forms/SYGL";
 	params["keyfield"] = "CREATEUSER";
-	params["keys"] = sz.security.getCurrentUser().id;
+	params["keys"] = 'wangyg';
 	params["wordfield"] = "ATTACHMENT1";
 	return getWordInputStream(params);
 }
@@ -434,6 +490,7 @@ function checkSaveWord(fileObj){
  * 是否和当前登录用户一致，避免用户在客户端直接修改当前的word的操作用户
  * @param {} req
  * @param {} res
+ * @mapping
  */
 function downloadFormWord(req, res){
 	println("download:"+req.getRequestURI());
@@ -469,6 +526,7 @@ function downloadFormWord(req, res){
 		 */
 		var downloadType = ProtectionType.READ_ONLY;
 		var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
+		println("downloadFormWord: state="+state);
 		if(state == "10"){
 			downloadType = -1;
 		}else if(state=="20"){
@@ -483,6 +541,7 @@ function downloadFormWord(req, res){
  * 以后用户编辑时，设置word的状态
  * 
  * 自动生成合同文本，把表单里面的项，自动插入到文本中
+ * @mapping
  */
 function saveDraft(req, res){
 	var resid = req.path;
@@ -526,6 +585,9 @@ function saveDraft(req, res){
 		 * 插入范本之前做一些处理，见函数说明
 		 */
 		var formDataStr = req.formdatas;
+		if(ISDEBUG){
+			println("formDataStr:"+formDataStr);
+		}
 		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
 		insertTemplateBefore(file, formData);
 		
@@ -557,25 +619,48 @@ function insertTemplateBefore(file, formDatas){
 	println("insert template sign:"+file);
 	
 	/**
-	 * 初始化bookMark的值
+	 * 初始化BookMark的值
 	 */
-	if(formDatas){
-		var keys = formDatas.keySet().toArray();
-		var bks = doc.getRange().getBookmarks();
-		for(var i=0, len=bks.getCount(); i<len; i++){
-			var bk = bks.get(i);
-			var key = bk.getName();
-			var kk = StringUtils.upperCase(key);
-			if(keys.indexOf(kk) < 0){
-				continue;
-			}
-			
-			bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
-		}
-	}
+	makeTemplateContract(doc, formDatas);
 	
 	doc.save(file);
 }
+
+/**
+ * 根据word、表单的数据生成合同，重复生成合同，不能使用邮件域，邮件域生成一次后就在也找不到了，
+ * 故使用BookMark的方式来生成。
+ * 
+ * TODO Aspose不支持ActivX控件，只支持旧版本的组件
+ */
+function makeTemplateContract(doc, formDatas){
+	if(formDatas == null){
+		return doc;
+	}
+	if(ISDEBUG){
+		println("formdata====="+log2("makeTemplateContract", formDatas));
+	}
+	
+	var keys = formDatas.keySet().toArray();
+	var bks = doc.getRange().getBookmarks();
+	var bkNames = [];
+	for(var i=0, len=bks.getCount(); i<len; i++){
+		var bk = bks.get(i);
+		var key = bk.getName();
+		bkNames.push(key);
+		
+		var kk = StringUtils.upperCase(key);
+		if(keys.indexOf(kk) < 0){
+			continue;
+		}
+		
+		bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
+	}
+	
+	if(ISDEBUG){
+		println("BookMark:"+bkNames.join(";"));
+	}
+}
+
 
 /**
  * 在审批过程中，要对word文档进行修改，这时数据会直接写入数据库对应的表单库，而不是写入到草稿库中
@@ -589,6 +674,7 @@ function insertTemplateBefore(file, formDatas){
  * 5. compName 组件名  可以获取存储到哪个字段
  * 6. compress 是否压缩存储
  * 7. rowKey   如果是浮动表，还需要传入一个rowKey， TODO 目前先不解决浮动表的
+ * @mapping
  */
 function saveWordInForm(req, res){
 	var path = req.path;
@@ -702,27 +788,8 @@ function getDetailIdValue(keys, idField){
  * @param {} id
  */
 function downloadDraftAttachment(req, res, task, id){
-	var draft = dataPackageUtil.getDWTable(task, CIMetaConsts.SYS_PREFIX + CIMetaConsts.TABLE_CI_DRAFT_ATTACHMENTS);
-	var ds = draft.getDataSourceName();
-	var cf = mgr.get(ds);
-
-	var query = getDraftAttachmentInfQuery(id, draft);
-
-	var querySql = query.getQuerySql();
-	var sqlstr = sf.getSql(querySql, cf.getDbMetaData());
-	var rs = null;
-	var conn = null;
-	var ps = null;
-	var input = null;
+	var input = getContractInputStreamByDraft(task,id);
 	try {
-		conn = cf.getConnection();
-		ps = conn.prepareStatement(sqlstr);
-		rs = ps.executeQuery();
-		if (!rs.next()) {
-			res.sendError(HttpServletResponse.SC_NOT_FOUND);
-			return;
-		}
-		input = rs.getBinaryStream(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
 		/**
 		 * 如果是范本合同  ProtectionType.ALLOW_ONLY_FORM_FIELDS，那么以窗体只读的方式打开
 		 */
@@ -741,6 +808,41 @@ function downloadDraftAttachment(req, res, task, id){
 	}
 	finally {
 		IOUtils.closeQuietly(input);
+	}
+}
+
+/**
+ * 从草稿中获取合同的内容，便于根据表单内容重新更新合同范本
+ */
+function getContractInputStreamByDraft(task, id){
+	var draft = dataPackageUtil.getDWTable(task, CIMetaConsts.SYS_PREFIX + CIMetaConsts.TABLE_CI_DRAFT_ATTACHMENTS);
+	var ds = draft.getDataSourceName();
+	var cf = mgr.get(ds);
+
+	var query = getDraftAttachmentInfQuery(id, draft);
+
+	var querySql = query.getQuerySql();
+	var sqlstr = sf.getSql(querySql, cf.getDbMetaData());
+	var rs = null;
+	var conn = null;
+	var ps = null;
+	try {
+		conn = cf.getConnection();
+		ps = conn.prepareStatement(sqlstr);
+		rs = ps.executeQuery();
+		if (!rs.next()) {
+			throw new Error("taskpath:"+task.getPath()+"中不存在ID为“"+id+"”的草稿!");
+		}
+		var input = rs.getBinaryStream(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
+		try{
+			var myOut = new MyByteArrayOutputStream();
+			IOUtils.copy(input, myOut);
+			return myOut.asInputStream();
+		}finally{
+			IOUtils.closeQuietly(input);
+		}
+	}
+	finally {
 		com.succez.commons.jdbc.impl.JdbcUtils.closeQuietly(conn, ps, rs);
 	}
 }
@@ -879,3 +981,37 @@ function insertWatermarkIntoHeader(watermarkPara, sect, headerType){
 /**
  * ========================插入水印结束====================================
  */
+
+/**
+ * 记录日志，便于调试
+ * @param {} method
+ * @param {} params
+ */
+function log(method, params){
+	if(ISDEBUG){
+		println(method+":"+JSON.stringify(params));	
+	}
+}
+
+/**
+ * 记录日志，参数是一个map
+ * @param {} method
+ * @param {} map
+ */
+function log2(method, map){
+	if(!ISDEBUG){
+		return "";
+	}
+	
+	if(map == null){
+		return "";
+	}
+	
+	var result = [];
+	var keys = map.keySet().toArray();
+	for(var i=0; i<keys.length; i++){
+		var key = keys[i];
+		result.push(key+":"+map[key]);
+	}
+	return result.join(";");
+}
