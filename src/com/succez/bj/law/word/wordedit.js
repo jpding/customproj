@@ -159,7 +159,9 @@ function makecontract(req, res){
 		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "datahierarchies":datahierarchies});
 	}
 	
-	datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
+	if(datahierarchies){
+		datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
+	}
 	
 	var input = null;
 	/**

@@ -17,7 +17,10 @@
 		var compObj = $form.getComponent(compid);
 		var val = compObj.getAttachmentValue();
 		if (val != null){
-			upload.editAttachmentAsDoc($form, compid);
+			upload.makeTemplateContract($form, compid, callback);
+			/*
+			 * upload.editAttachmentAsDoc($form, compid);
+			 */
 			return;
 		}
 		
@@ -175,7 +178,7 @@
 	 *   2.如果存在合同，那么最开始应该从合同表单里面取出，在存储的草稿中
 	 *   3.如果存在合同，并且在草稿中，那么就从草稿中重新取出合同
 	 */
-	upload.makeTemplateContract = function($form, compid){
+	upload.makeTemplateContract = function($form, compid, callback){
 		var compObj = $form.getComponent(compid);
 		var attachmentVal = compObj.getAttachmentValue();
 		if (attachmentVal != null){
@@ -191,7 +194,7 @@
 			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
 			$.post(url, data, function(info){
 				compObj.setAttachmentValue(info);
-				alert("success");
+				upload.editAttachmentAsDoc($form, compid,callback);
 			});
 		}else{
 			/**
