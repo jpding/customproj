@@ -50,6 +50,15 @@
                     var baseform = form.getWIBaseForm();
                     _formInited(baseform, self.formDlg, hiddenButton);
 				});
+			
+			/**
+			 * 2014-12-22
+			 * 在IE8下，点击取消以后，系统仍然视为已经修改，故在取消的时候，要设置为页面无修改，不然会
+			 * 出现windows的提示框
+			 */
+			this.formDlg.one(sz.commons.Dialog.EVENTS.CLOSE, function() {	
+				sz.commons.CheckSaved.getInstance().setModified();
+			})
 		}
 		
 		
@@ -387,7 +396,6 @@
 	 * 在工作流表单脚本中调用
 	 */
 	widlg.saveFormCallback = function(){
-		
 		if(sz.custom.wi.on_callback){
 			sz.custom.wi.on_callback();
 		}
@@ -619,216 +627,3 @@
 		return result;
 	}
 })(jQuery);
-
-/**
- * 显示法律知识库中单条法律条文的页面，通过传递进去主键pkey，显示法规的内容出来
- * @param {} name
- * @param {} onOk
- */
-window._showLawContentPage = function(pkey,tableName,onOk){
-	var dlg = window.showLawContentDlg;
-	if (!dlg){
-		dlg =  window.showLawContentDlg = sz.commons.Dialog.create();
-	}
-	
-	dlg.showHtml({
-		url : sz.sys.ctx(encodeURI("/meta/LAWCONT/others/knowlege/展示页面/showPage.action?method=showLawContent")),
-		data : {
-			pkey : pkey,
-			tbName : tableName
-		}
-	})
-	dlg.one(sz.commons.Dialog.EVENTS.OK,function(){
-		if (typeof(onOk) == "function"){
-			onOk();
-		}
-		return true;
-	})
-}
-
-/**
- * 提交的时候更新内容字段，更新的依据是pkey
- * @param nameId 名称字段的id，如rpt1.A2等
- * @param valueId 内容字段的id，如rpt1.A3等
- */
-window._doSubmitLaw = function($rpt,nameId,tbName){
-	var nameObj = $rpt.comp(nameId);
-	if (!nameObj) return;
-	var name = nameObj.val();
-	if (!name || name == ""){
-		alert("请输入标题");
-		return;
-	}
-	
-	var pkey = nameObj.basedom().attr("title");
-	
-	$rpt.submitFill({
-	   forceUpdateAll : true,
-	   success : function(){
-	   		var value = window.uSuccezEdit.getContent();
-	   		if (value && value!=""){
-		   		$rpt.rpc({
-		   			func        : "doUpdateContent",
-		            args        : {
-		                val    :  value,
-		                pkey	: pkey,
-		                tbName : tbName
-		            },
-		            success : function(feedback) {
-		                $rpt.recalc();
-		            }
-		   		})
-	   		}else{
-	   			$rpt.recalc();
-	   		}
-	   }
-	})
-}
-
-/**
- * 打开修改对话框
- */
-window.openUpdateDialog = function(pkey,tbPath) {
-	$rpt.drill({
-	    $sys_drillto:tbPath,
-	    $sys_needFilter:false,
-	    $sys_passparameters:false,
-	    $sys_customparameters:"$sys_calcnow=true&$pkey=" + pkey,
-    	$sys_target:"blank"
-	})
-}
-
-window.doDeleteData = function(pkey,tb){
-	if (window.confirm("确认要删除吗？")){
-		$rpt.rpc({
-			func        : "doDeleteData",
-	        args        : {
-	            pkey	: pkey,
-	            tbName : tb
-	        },
-	        success : function(feedback) {
-	            $rpt.recalc();
-	            sz.commons.Alert.show({msg:"删除成功"})
-	        }
-		})
-	}
-}
-
-/**
- * 根据主键从服务器请求内容回来，并显示到页面中的特定位置上
- * @param {} $rpt
- * @param {} pkey
- * @param {} tb
- * @param {} targetId
- */
-window.getContentAndShow = function($rpt,pkey,tb,targetId){
-	var targetObj = $rpt.comp(targetId);
-	if (!targetObj){
-		sz.commons.Alert.show({msg:"请指定显示内容的目的表元"})
-	}
-	
-	$rpt.rpc({
-		func        : "doShowContentToTarget",
-        args        : {
-            pkey	: pkey,
-            tbName : tb
-        },
-        success : function(content) {
-           targetObj.$dom.html(content);
-        }
-	})
-}
-
-window.getUEditor = function(params){
-	window.UEDITOR_HOME_URL = sz.sys.ctx("/meta/LAWCONT/others/knowlege/ueditor1_3_6-utf8-jsp/");
-	var urlPath =  sz.sys.ctx("/meta/LAWCONT/others/knowlege/ueditor1_3_6-utf8-jsp/ueditor.all.js");	
-	$.getScript(urlPath,function(){
-		var editID = params.editID;
-		var $rpt = params.$rpt;
-		var pkeyDom = params.pkeyDom;
-		var tbName = params.tbName;
-		
-		var edit = window.uSuccezEdit = window.UE.getEditor(editID);
-		var pkey = $rpt.comp(pkeyDom).basedom().attr("title");
-		if (pkey == "") return;
-		$rpt.rpc({
-			func : "doGetContentForShow",
-			args : {
-				pkey : pkey,
-				tbName : tbName
-			},
-			success : function(feedback){
-				if (feedback && feedback != ""){
-					edit.setContent(feedback);
-				}
-			}
-		})
-	})
-}
-
-window._doAddDimTreeToPanel = function($rpt,params){
-	var _pdomId = params.pDomId;
-	var execFunc = function($rpt,params){
-		var dimtree_hgsj =sz.bi.dw.DimensionTree.create({
-			pdom:$("#"+_pdomId),
-			multiple:false,
-			showLine :false,
-			displayformat:"@txt",
-			showIcon:false,
-			callback:{
-				onClick : function(event, treeId, treeNode){
-					var typecode = treeNode.value;
-					$rpt.refreshcomponents({
-						"$sys_target":params.refTarget,
-						"$sys_customparameters":"$typecode='"+typecode+"'",
-						"$sys_targetComponent":params.refComp
-					});
-				}
-			}
-		});
-		var ajaxUrl = this.constructor.ajaxUrl ? this.constructor.ajaxUrl.listChildrenUrl : null;
-		if(!ajaxUrl){
-			ajaxUrl = "/sz/bi/dw/dimcombobox/listchildren_dim";
-		};
-	
-		dimtree_hgsj.setListChildrenUrl(ajaxUrl);
-		var ajaxExpandUrl = this.constructor.ajaxUrl ? this.constructor.ajaxUrl.expandNodeUrl : null;
-		if(!ajaxExpandUrl){
-			ajaxExpandUrl = "/sz/bi/dw/dimcombobox/expandchildren_dim";
-		}
-		dimtree_hgsj.setExpandNodeUrl(ajaxExpandUrl);
-		dimtree_hgsj.setRootId(params.dimPath);
-		var uId = params.uId;
-		if (uId){
-			dimtree_hgsj.expandByUid(uId);
-		}
-	}
-	var urlPath =  sz.sys.ctx("/meta/LAWCONT/others/knowlege/页面相关的js/dimTree.js");
-	$.getScript(urlPath,function(){
-		execFunc($rpt,params);	
-	});
-}
-
-/**
- * 导入excel文件
- * @param {} configPath
- * @param {} bbqType
- * @param {} callback
- */
-window._doImport  = function(configPath,bbqType,callback){
-    if (!window.importExcelDialog) {
-		window.importExcelDialog = sz.commons.Dialog.create();
-	}
-	window.importExcelDialog.showHtml({
-		url : sz.sys.ctx(encodeURI("/meta/LAWCONT/others/importexcel/导入界面/setConfig.action?method=setConfigAndShowPage")),
-		data : {
-			config : configPath,
-			bbqType : bbqType
-		}
-	});
-	
-	window.importExcelDialog.one(sz.commons.Dialog.EVENTS.OK,function(event){
-		if (typeof(callback)=='function') callback();
-		return true;
-	});
-}
