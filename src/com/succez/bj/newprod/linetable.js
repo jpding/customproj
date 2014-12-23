@@ -15,7 +15,8 @@ var ROW_START     = 3; // 0 base
  */
 function onAfterReportCalc(args) {
     var result = args.result;
-    var table = result.getComponent(TABLE_NAME);
+    var params = args.session.getParameters();
+    var table = getCurrentTable(result, params);
     var startCol = getStartCol(table);
     if(startCol == -1){
     	println("startCol:start col error !");
@@ -58,6 +59,24 @@ function onAfterReportCalc(args) {
     		}
     	}
     }
+}
+
+/**
+ * 当前报表是一个多sheet的报表，但只有一个数据Table，故通过遍历获取，不在通过名称获取
+ */
+function getCurrentTable(rpt, params){
+	var compid = TABLE_NAME;
+	var vv = params.get("cbx1");
+	if(vv == "1"){
+		compid = "table1";
+	}else if(vv == "2"){
+		compid = "table2";
+	}
+	var table = rpt.getComponent(compid);
+	if(table == null){
+		throw new Error("根据“"+vv+"”获取不到Table对象");
+	}
+	return table;
 }
 
 function checkVisible(table, rowIndex, startCol, endCol){
