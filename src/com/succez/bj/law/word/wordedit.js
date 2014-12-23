@@ -102,6 +102,15 @@ function execute(req, res){
 }
 
 /**
+ * 
+ * @param {} req
+ * @param {} res
+ */
+function show(req, res){
+	
+}
+
+/**
  * /meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable=xxx&keyfield=xxx&keys=xxx&wordfield=xxxx
  * /meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable=27262991&keyfield=UID&keys=23141f39c6a44efb81aaae0e276bb1a2&wordfield=ATTACHMENT1
  * 
@@ -167,12 +176,16 @@ function makecontract(req, res){
 	/**
 	 * 从草稿或者表单内容中获取相应的word文档流
 	 */
+	var attachmentObj = {};
 	if(StringUtils.isNotBlank(id)){
-		input = getContractInputStreamByDraft(citask,id);
+		input = getContractInputStreamByDraft(citask,id, attachmentObj);
 	}else{
 		var myOut = new MyByteArrayOutputStream();
-		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
-					dwTable, fileContentField, fileNameField);
+//		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
+//					dwTable, fileContentField, fileNameField);
+		var attachmentInf = serviceAttachments.getAttachment(citask, dataperiod,datahierarchies, rowKey,
+			dwTable, fileContentField, fileNameField, myOut);
+		attachmentObj["name"] = attachmentInf.getFilename();	
 		input = myOut.asInputStream();
 	}
 	
@@ -186,8 +199,7 @@ function makecontract(req, res){
 		makeTemplateContract(doc, formData);
 		var myOutput = new MyByteArrayOutputStream();
 		doc.save(myOutput, SaveFormat.DOCX);
-//		var filename = StringEscapeUtils.decodeURI(filename);
-		var filename = "testword.doc";
+		var filename = attachmentObj["name"];
 		var size = myOutput.size();
 		var contentType = "application/msword";
 		var inputStream = myOutput.asInputStream();
@@ -816,7 +828,7 @@ function downloadDraftAttachment(req, res, task, id){
 /**
  * 从草稿中获取合同的内容，便于根据表单内容重新更新合同范本
  */
-function getContractInputStreamByDraft(task, id){
+function getContractInputStreamByDraft(task, id, attachmentObj){
 	var draft = dataPackageUtil.getDWTable(task, CIMetaConsts.SYS_PREFIX + CIMetaConsts.TABLE_CI_DRAFT_ATTACHMENTS);
 	var ds = draft.getDataSourceName();
 	var cf = mgr.get(ds);
@@ -835,6 +847,15 @@ function getContractInputStreamByDraft(task, id){
 		if (!rs.next()) {
 			throw new Error("taskpath:"+task.getPath()+"中不存在ID为“"+id+"”的草稿!");
 		}
+		
+		if(attachmentObj){
+			attachmentObj["id"] = id;
+//			attachmentObj["size"] =  java.lang.String.valueOf(attachment.getSize());
+			attachmentObj["name"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_FILENAME);
+//			attachmentObj["updateTime"] = String.valueOf(attachment.getUpdateTime());
+			attachmentObj["contentType"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_CONTENTTYPE);		
+		}
+		
 		var input = rs.getBinaryStream(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
 		try{
 			var myOut = new MyByteArrayOutputStream();
