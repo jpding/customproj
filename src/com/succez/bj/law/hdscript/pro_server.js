@@ -1,7 +1,3 @@
-function getUserManager(initiator) {
-	return getUserByStarter(initiator, "部门领导");
-}
-
 /**
  * 根据人员、角色，返回人员对应部门中包含有roleName角色的人员
  * @param {} starter
@@ -16,21 +12,39 @@ function getUserByStarter(starter, roleName) {
 }
 
 /**
- * 返回部门中包含该角色的人员，如果有多个相同的角色的人员，只返回查找到的第一个
+ * 返回部门中包含该角色的人员，如果有多个相同的角色的人员，返回找到的所有符合条件的人员。
+ * 由于业务经办人员都是数据“室”下面一级的人员，找他们的部门领导，就需要跨过“室”这一级，所
+ * 以需要进行循环遍历
  * @param {} dptid
  * @param {} roleName
  * @return {}
  */
 function getUserByRole(dptid, roleName) {
-	var userlist = sz.security.listUsers(dptid, false);
-	for (var i = 0; i < userlist.length; i++) {
-		var sib = userlist[i];
-		if (sib.isRole(roleName)) {
-			return sib.id;
+	var result = [];
+	var parentOrgId = dptid;
+	print("parentOrgId:"+parentOrgId);
+	while (result.length ==0 && parentOrgId && parentOrgId != "HD01"){
+		var userlist = sz.security.listUsers(parentOrgId, false);
+		for (var i = 0; i < userlist.length; i++) {
+			var sib = userlist[i];
+			if (sib.isRole(roleName)) {
+				result.push(sib.id);
+			}
 		}
+		var orgObj = sz.security.getOrg(parentOrgId);
+		if(orgObj == null){
+			break;
+		}
+		var pOrg = orgObj.parent;
+		print("pOrg:"+pOrg+"-----id:"+pOrg.id);
+		parentOrgId = pOrg ? pOrg.id : null; 
 	}
-
-	throw new Error('找不到用户“' + user.id + "”的负责人，请查看该部门下是否有用户设置了“"+roleName+"”角色!");
+	
+	if (result.length > 0){
+		return result.join(",");
+	}else{
+		throw new Error('找不到机构“' + dptid + "，请查看该部门下是否有用户设置了“"+roleName+"”角色!");
+	}
 }
 
 /**
@@ -90,40 +104,6 @@ function listUsers(org){
 	}
 	return result;
 }
-
-function doUpdateContent(args){
-	var params = args.args;
-	var pkey= params.pkey;
-	var value = params.val;
-	var tbName = params.tbName;
-	
-	print("pkey: " + pkey);
-	print("value : " + value);
-	var ds = sz.db.getDataSource('default');
-	var upd = ds.createTableUpdater(tbName,"PKEY="+pkey);
-	upd.set("CONTENT",value);
-	upd.commit();
-}
-
-function doDeleteData(args){
-	var params = args.args;
-	var pkey= params.pkey;
-	var tbName = params.tbName;
-	var ds = sz.db.getDataSource('default');
-	ds.update("delete from "+ tbName +" where PKEY=?",pkey);
-}
-
-function doGetContentForShow(args){
-	var params = args.args;
-	var pkey= params.pkey;
-	var tbName = params.tbName;
-	var ds = sz.db.getDataSource('default');
-	var result = ds.select("select CONTENT from "+ tbName +" where PKEY=?",pkey);
-        if (result && result.length>0 && result[0] && result[0].length>0){
-                return result[0][0]
-        }
-}
-
 /**
 *  在合同生效之后，更新合同状态为审批通过
 */
