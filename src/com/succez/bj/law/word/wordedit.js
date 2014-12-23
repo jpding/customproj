@@ -667,7 +667,11 @@ function makeTemplateContract(doc, formDatas){
 			continue;
 		}
 		
-		bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
+		if(formDatas[kk] == null || formDatas[kk] == "null"){
+			bk.setText("");		
+		}else{
+			bk.setText(StringUtils.trimToEmpty(formDatas[kk]));
+		}
 	}
 	
 	if(ISDEBUG){
