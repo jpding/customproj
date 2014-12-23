@@ -44,7 +44,7 @@ function initEnv2() {
 		jTabsPH.find(".tabsRight").hoverClass("tabsRightHover");
 		jTabsPH.find(".tabsMore").hoverClass("tabsMoreHover");
 	
-	}, 10);
+	}, 200);
 
 }
 function initLayout(){
@@ -55,7 +55,7 @@ function initLayout(){
 	$("#container .tabsPageContent").height(iContentH - 34).find("[layoutH]").layoutH();
 	$("#sidebar, #sidebar_s .collapse, #splitBar, #splitBarProxy").height(iContentH - 5);
 	$("#taskbar").css({top: iContentH + $("#header").height() + 5, width:$(window).width()});
-	$(window.frames["framehome"]).height(iContentH - 34);
+	$("#framehome").height(iContentH - 34);
 }
 
 function addNavTabEvent($href, event){
