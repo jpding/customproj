@@ -131,22 +131,22 @@
 		<span class="custom-portal-layout">
 			<@sz.commons.widget id="dbsx" title="待审批事项"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork_query&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}"  style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
 				</div>
 			</@sz.commons.widget>
 			<@sz.commons.widget id="sssxjz" title="送审事项进展"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSSXJZ&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSSXJZ&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSSXCXB&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}"  style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
 				</div>
 			</@sz.commons.widget>
 			<@sz.commons.widget id="ybsx" title="已审批事项"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/didwork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/didwork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/YSPSX&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
 				</div>
 			</@sz.commons.widget>
 			<@sz.commons.widget id="sswc" title="送审完成事项"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSWCSX&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSWCSX&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/SSWCCX&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
 				</div>
 			</@sz.commons.widget>
 			
@@ -166,8 +166,16 @@
 				/**
 				 * iframe[0].contentWindow.location.reload();
 				 */
-				 debugger;
-				 iframe[0].contentWindow.$rpt().recalc();
+				 if(iframe[0].contentWindow.$rpt){
+				 	var rpt = iframe[0].contentWindow.$rpt();
+				 	if(rpt){
+				 		rpt.recalc();
+				 	}else{
+				 		iframe[0].contentWindow.location.reload();
+				 	}
+				 }else{
+				 	iframe[0].contentWindow.location.reload();
+				 }
 			}else{
 				var url = null;
 				var maxUrl = iframe.attr("maxurl");
