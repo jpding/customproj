@@ -163,9 +163,9 @@ function makecontract(req, res){
 	var fileContentField = req.fileContentField;
 	var fileNameField    = req.fileNameField;
 	var citask = serviceAttachments.getCITask(resid);
-	println("=========downloadFormWord==="+id+";resid:"+resid);
+	println("=========makecontract==="+id+";resid:"+resid);
 	if(ISDEBUG){
-		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "datahierarchies":datahierarchies});
+		log("makecontract", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "datahierarchies":datahierarchies});
 	}
 	
 	if(datahierarchies){
