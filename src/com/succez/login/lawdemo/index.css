@@ -154,6 +154,7 @@ html, body {
 	position: absolute;
 	left: 50%;
 	top: 50%;
+	padding-right:2px;
 	margin: -70px 0 0 -129px;
 }
 a.banner:active, a.banner:visited, a.banner:hover, a.banner:link {

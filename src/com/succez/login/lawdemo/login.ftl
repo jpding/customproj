@@ -6,6 +6,13 @@
 	<div class="header"></div>
 	<div class="section">
 		<div class="section_inner">
+			<img name="idx_07" src="images/blue/idx_07.jpg" width="1000" height="420" id="idx_07" usemap="#m_idx_07" alt="" style="position: relative;height: 420px;"/>
+			<map name="m_idx_07" id="m_idx_07">
+				<area shape="rect" coords="45,210,136,317" href="javascript:;" alt=""  onclick="sz.custom.login.click('YW')" />
+				<area shape="rect" coords="45,114,136,197" href="javascript:;" alt=""  onclick="sz.custom.login.click('FW')"/>
+				<area shape="rect" coords="261,48,365,134" href="javascript:;" alt="" onclick="sz.custom.login.click('QM')"  />
+				<area shape="rect" coords="136,37,238,114" href="javascript:;" alt="" onclick="sz.custom.login.click('YM')"  />
+			</map>
 			<div id="login-status"></div>
 			<div id="role-caption">法务人员(FW)</div>
 			<div class="login_form">
@@ -38,66 +45,19 @@
 				<div class="box_r">
 					<div class="banner_panel">
 						<a href="#" class="banner">
-							审批职责
+							<span>审批职责</span>
 							<p class="banner_desc">对合同和规章制度的管控点执行审批</p>
 						</a>
 						<a href="#" class="banner">
-							风险控制
+							<span>风险控制</span>
 							<p class="banner_desc">有效预防和控制法律风险</p>
 						</a>
 						<a href="#" class="banner">
-							知识库维护
+							<span>知识库维护</span>
 							<p class="banner_desc">维护法律知识库支持管控点风险控制</p>
 						</a>
 					</div>
 				</div>
-			</div>
-			
-			<#-- 设置背景图片，便于响应鼠标响应事件 -->
-			<div>
-				<table id="__01" width="313" height="284" border="0" cellpadding="0" cellspacing="0" style="background-color:red;">
-					<tr>
-						<td align="left" valign="top">
-							<img src="img/t2_01.jpg" width="95" height="72" alt=""></td>
-						<td colspan="2" rowspan="2" align="left" valign="top">
-							<img src="img/t2_02.jpg" width="120" height="83" alt=""></td>
-						<td rowspan="2" align="left" valign="top">
-							<img src="img/t2_03.jpg" width="97" height="83" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="72" alt=""></td>
-					</tr>
-					<tr>
-						<td rowspan="2" align="left" valign="top">
-							<img src="img/t2_04.jpg" width="95" height="85" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="11" alt=""></td>
-					</tr>
-					<tr>
-						<td colspan="3">
-							<img src="img/t2_05.jpg" width="217" height="74" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="74" alt=""></td>
-					</tr>
-					<tr>
-						<td colspan="2" align="left" valign="top">
-							<img src="img/t2_06.jpg" width="96" height="126" alt=""></td>
-						<td colspan="2">
-							<img src="img/t2_07.jpg" width="216" height="126" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="126" alt=""></td>
-					</tr>
-					<tr>
-						<td>
-							<img src="img/spacer.gif" width="95" height="1" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="1" height="1" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="119" height="1" alt=""></td>
-						<td>
-							<img src="img/spacer.gif" width="97" height="1" alt=""></td>
-						<td></td>
-					</tr>
-				</table>
 			</div>
 			
 			<div class="themes_nav">
@@ -121,5 +81,6 @@
 <@script src="index.js"/>
 <@script>
 	sz.bi.Login.createDefault();
+	
 </@script>
 </@sz.commons.html.simplehtml>
