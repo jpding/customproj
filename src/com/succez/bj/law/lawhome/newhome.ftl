@@ -131,7 +131,7 @@
 		<span class="custom-portal-layout">
 			<@sz.commons.widget id="dbsx" title="待审批事项"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" maxurl="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/dowork&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
 				</div>
 			</@sz.commons.widget>
 			<@sz.commons.widget id="sssxjz" title="送审事项进展"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
@@ -154,13 +154,34 @@
 	</div>
 </div>
 	<@script>
+		var ems = $(".sz-commons-widget-header-title em");
+		
+		ems.after("<em class=\".sz-app-icon sz-app-icon-refresh\"></em>");
+		
 		$(".sz-commons-widget-header-title em").click(function(){
 			var portal = $(this).closest(".sz-commons-widget");
-			var url = portal.find("iframe").attr("src");
-			var idx = url.indexOf("?");
-			var paramUrl = url.substring(idx);
-			url = url.substring(0,idx)+sz.utils.setParameterOfUrl("$sys_showParamPanel", "true", paramUrl);
-			top.navTab.openTab("custom_101",url ,{title:portal.find("span").text(), fresh:true, external:true});
+			var iframe = portal.find("iframe");
+			
+			if($(this).attr("class")==".sz-app-icon sz-app-icon-refresh"){
+				/**
+				 * iframe[0].contentWindow.location.reload();
+				 */
+				 debugger;
+				 iframe[0].contentWindow.$rpt().recalc();
+			}else{
+				var url = null;
+				var maxUrl = iframe.attr("maxurl");
+				if(maxUrl){
+					url = maxUrl
+				}else{
+					url = iframe.attr("src");
+					var idx = url.indexOf("?");
+					var paramUrl = url.substring(idx);
+					url = url.substring(0,idx)+sz.utils.setParameterOfUrl("$sys_showParamPanel", "true", paramUrl);
+				}
+				
+				top.navTab.openTab("custom_101",url ,{title:portal.find("span").text(), fresh:true, external:true});
+			}
 		});
 	</@script>
 </@sz.commons.html.body>
