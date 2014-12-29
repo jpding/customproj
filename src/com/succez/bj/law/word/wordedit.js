@@ -545,6 +545,11 @@ function downloadFormWord(req, res){
 			downloadType = -1;
 		}else if(state=="20"){
 			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
+		} else if(state == "-1"){
+			/**
+			 * 不存在状态字段
+			 */
+			downloadType = ProtectionType.READ_ONLY;
 		}
 		writeWord(bins, res, downloadType, req.version == "Word.Application.11");			
 	}
@@ -905,7 +910,8 @@ function getCITableFieldValue(task, dwTable, dataperiod, datahierarchies, fieldN
 	}
 	var field = model.getField(fieldName);
 	if (field == null) {
-		throw new Error("事实表：" + dwTable + "中字段：" + fieldName + "不存在!");
+		println("事实表：" + dwTable + "中字段：" + fieldName + "不存在!");
+		return "-1";
 	}
 	var dsName = model.getDataSourceName();
 	var sql = dataPackageUtil.createQuery(task, dwTable, Arrays.asList(fieldName),Arrays.asList(dataperiod),
@@ -1007,6 +1013,14 @@ function insertWatermarkIntoHeader(watermarkPara, sect, headerType){
 }
 /**
  * ========================插入水印结束====================================
+ */
+
+/**
+ * ======================多人编辑word冲突处理============================== 
+ */
+
+/**
+ * ======================多人编辑word冲突处理结束====================================
  */
 
 /**
