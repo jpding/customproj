@@ -86,7 +86,10 @@
 	    	}
 	    }else{
 	    	var downloadUrl = WSOffice.DOWNLOADURL ;
-	  		var downloadUrlParam = sz.utils.setParameter("method", "downloadword");
+	    	if(!method){
+	    		method = "downloadword";
+	    	}
+	  		var downloadUrlParam = sz.utils.setParameter("method", method);
 	  		/**
 	  		 * downloadtype 在wordedit.ftl中定义
 	  		 */
