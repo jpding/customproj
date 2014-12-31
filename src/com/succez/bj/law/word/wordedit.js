@@ -98,6 +98,10 @@ function execute(req, res){
 	if(req.namespace){
 		res.attr("namespace",req.namespace);
 	}
+	/**
+	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
+	 */
+	res.attr("ignoreChromeFrame", "true");
 	return "wordedit.ftl";
 }
 
@@ -545,6 +549,18 @@ function downloadFormWord(req, res){
 			downloadType = -1;
 		}else if(state=="20"){
 			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
+			/**
+			 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
+			 * TODO
+			 * citaskPath, uid, formName, wordField, sessionid)
+			 */
+			var uidField = ciTask.getDetailGrainDef().getIDField();
+			var uid = getDetailIdValue(datahierarchies, uidField);
+			var sessionid = req.getSession().getId();
+			var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
+			if(lockObj != null){
+				downloadType = ProtectionType.READ_ONLY;
+			}
 		} else if(state == "-1"){
 			/**
 			 * 不存在状态字段
@@ -1016,8 +1032,120 @@ function insertWatermarkIntoHeader(watermarkPara, sect, headerType){
  */
 
 /**
- * ======================多人编辑word冲突处理============================== 
+ * ======================多人编辑word冲突处理==============================
+ * 
+ * 多人编辑只存在于审批中，故只需要考虑审批状态下的多人编辑，多人编辑的实现
+ * 
+ * 1.打开word文档时，先判断该文档是否已经锁定
+ *   a.如果锁定，那么就提示用户“该文档正在被xxx编辑，目前只能以只读模式打开!”
+ *   b.未锁定，那么就锁定该文档，直接打开
+ * 
+ *   
+ *  
  */
+var lockService = BeanGetter.getBean(com.succez.commons.service.lock.LockService);
+var activeusers = BeanGetter.getBean(com.succez.security.api.session.ActiveUsers);
+var conflictTableResource = lockService.createResourceByPath("/SUCCEZBJHD/SZ_CUSTOM_CONFLICT");
+var TIME_ONE_DAY = 86400000;
+
+/**
+ * 检查某个文档是否被锁定了，如果锁定了，那么就返回锁定信息，反之则返回null
+ * @return {}
+ */
+function checkLock(citaskPath, uid, formName, wordField, sessionid){
+	var lockObj = lockService.createLock();
+	lockObj.addReadLocks(SZ_CUSTOM_CONFLICT);
+	lockObj.lock(TIME_ONE_DAY);
+	try{
+		var queryObj = queryLockObj(citaskPath, uid, formName);
+		if(queryObj == null){
+			/**
+			 * 插入信息
+			 */
+			insertLockObj(citaskPath, uid, formName, wordField, sessionid);
+			return null;
+		}
+		
+		return queryObj;
+	}finally{
+		lockObj.unlock();
+	}
+}
+
+function queryLockObj(citaskPath, uid_, formName, wordField){
+	var ds = sz.db.getDefaultDataSource();
+	var rs = ds.select("select ID_, CREATETIME_,USEID_, SESSIONID_ from SZ_CUSTOM_CONFLICT where TASKID_=? and UID_= ? and formname_ = ? and attachfield_=?", 
+			[citaskPath, uid_, formName, wordField]);
+	if(rs == null || rs.length == 0 || rs[0].length == 0 || rs[0][0] == null){
+		return null;
+	}		
+	
+	var lockObj = {"user":rs[0][2], "sessionid":rs[0][3], "createtime":rs[0][1], "id":rs[0][0]};
+	var actUsers = activeusers.getActiveUsers();
+	for(var i=0; i<actUsers.size(); i++){
+		var login = actUsers.get(i);
+		var sessionid = login.getSessionId();
+		if(sessionid == lockObj.sessionid ){
+			/**
+			 * 删除该session
+			 */
+			ds.update("delete from SZ_CUSTOM_CONFLICT where ID_=?",[lockObj.id]);
+			
+			return lockObj;
+		}
+	}
+	
+	return null;
+}
+
+function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
+	var user = sz.security.getCurrentUser().id;
+	var ds = sz.db.getDefaultDataSource();
+	var sql = "insert into SZ_CUSTOM_CONFLICT values(?,?,?,?,?,?,?,?)"
+	ds.update(sql, [uuid(), new Date(), citaskPath, uid_, formName, wordField, user, sessionid]);
+}
+
+/**
+ * 打开一个文档时，应该把该文档的打开的相关信息记录到，资源冲突表里面，当下一个人打开时，界面自动提示
+ * 
+ * @param {} citaskPath  采集任务的资源路径
+ * @param {} formName    表单名
+ * @param {} wordField   word存储的字段，目前不支持，浮动表的附件
+ */
+function lock(citaskPath, formName, wordField){
+	var lockObj = lockService.createLock();
+	lockObj.addWriteLocks(SZ_CUSTOM_CONFLICT);
+	lockObj.lock(TIME_ONE_DAY);
+	try{
+		var user = sz.security.getCurrentUser();
+		
+	}finally{
+		lock.unlock();
+	}
+}
+
+function unlock(citaskPath, formName, wordField){
+	
+}
+
+/**
+ * 判断该资源是否被锁定
+ * @param {} citaskPath
+ * @param {} formName
+ * @param {} wordfield
+ */
+function isLock(citaskPath, formName, wordfield){
+	
+}
+
+/**
+ * 资源锁定了，才需要ping，如果未锁定则不需要ping，ping主要来处理解锁，目前不考虑某资源已经解锁的情形
+ */
+function pingLock(){
+	
+}
+
+
 
 /**
  * ======================多人编辑word冲突处理结束====================================
