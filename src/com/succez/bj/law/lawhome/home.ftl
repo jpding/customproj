@@ -19,9 +19,10 @@
 		}
 		#navMenu {height:45px;padding-left:210px;}
 		#leftside, #container, #splitBar, #splitBarProxy{top:125px}
+		#container {width:95%;}
 		#header .nav  li  a {color:#1e6ec4;}
 		#header .nav {
-			top:18px;
+			top:38px;
 		}
 		
 		#message span{
@@ -47,10 +48,8 @@
 					<li class="selected"><a href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_zlbzb&showtype=')}"><span>功能导航</span></a></li>
 					<li><a id="map_yw" href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_busiflow&showtype=tree')}"><span>业务流程图</span></a></li>
 					<li><a id="pmsg" href="${url('/meta/bbs?shownavbar=false#boardid=pmsg')}" target="navTab" external="true" rel="pmsg"><span>我的消息</span></a></li>
-					<li><a href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_anal&showtype=tree')}"><span>决策分析</span></a></li>
-				<#--	<li><a id="lawrepo" href="${url("/meta/LAWCONT/analyses/法律知识库/portal")}" target="_blank"><span>法律知识库</span></a></li> -->
-				<#--    <li><a id="lawrepo" href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=140541977&showtype=tree')}" target="_blank"><span>法律知识库</span></a></li>-->
-					<li><a href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_anal')}"><span>帮助</span></a></li>
+					<li><a id="menu_jcfx" href="${url('/meta/LAWCONT/analyses/index/newhome/portal.action?method=lefttree&path=LAWCONT:/analyses/index/portal_anal&showtype=tree')}"><span>决策分析</span></a></li>
+					<li><a id="phelp" href="${url('meta/bbs?shownavbar=false#boardid=测试')}" target="navTab" external="true" rel="phelp"><span>帮助</span></a></li>
 				</ul>
 			</div>
 		</div>
@@ -89,7 +88,7 @@
 				
 				<div class="navTab-panel tabsPageContent layoutBox">
 					<div class="page unitBox">
-						<iframe src="${url('/meta/LAWCONT/analyses/index/newhome.ftl')}" id="framehome" style="width:100%;height:492px;" frameborder="no" border="0" marginwidth="0" marginheight="0" name="framehome"></iframe>
+						<iframe src="${url('/meta/LAWCONT/analyses/index/newhome.ftl')}" id="framehome" style="width:100%;height:800px;" frameborder="no" border="0" marginwidth="0" marginheight="0" name="framehome"></iframe>
 					</div>
 				</div>
 			</div>
@@ -97,7 +96,7 @@
 	</div>
 
 	<#---
-	<div id="footer">Copyright &copy; 2014 <a href="http://www.succez.com" target="dialog">东方赛思软件有限公司</a></div>
+	<div id="footer">Copyright &copy; 2014 <a href="http://www.succez.com" target="dialog"></a></div>
 	-->	
 		<@script>
 			var url = "${url('/meta/LAWCONT/analyses/index/newhome/js/dwz.frag.xml')}";
@@ -109,7 +108,7 @@
 					initEnv2();
 					sz.metadata.PMessage.queryMessageCount($("#message"));
 					
-					var hrefArr = ['#pmsg'];
+					var hrefArr = ['#pmsg','#phelp'];
 					$.each(hrefArr, function(k, v){
 						var ywHref = $(v); 
 						ywHref.off("click");
@@ -118,6 +117,11 @@
 						});	
 					})
 					
+					$("#menu_jcfx").off("click");
+					$("#menu_jcfx").click(function(event){
+						alert("暂未实现，敬请关注");
+						return false;
+					})
 					
 					$("#themeList").theme({themeBase:"themes"});
 				}
