@@ -1102,7 +1102,7 @@ function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
 	var user = sz.security.getCurrentUser().id;
 	var ds = sz.db.getDefaultDataSource();
 	var sql = "insert into SZ_CUSTOM_CONFLICT values(?,?,?,?,?,?,?,?)"
-	ds.update(sql, [uuid(), new Date(), citaskPath, uid_, formName, wordField, user, sessionid]);
+	ds.update(sql, [uuid(), new java.sql.Timestamp(java.lang.System.currentTimeMillis()), citaskPath, uid_, formName, wordField, user, sessionid]);
 }
 
 /**
