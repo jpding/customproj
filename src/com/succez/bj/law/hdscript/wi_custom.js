@@ -152,9 +152,10 @@ function oninitwiform($flow){
 		sz.ci.custom.uploadattachment.refactorAllAttachmentClick(form);
 	}
 	
+	/*
 	if(sz.utils.browser.msielt10){
 		$(".sz-prst-form").find("a").attr("href","#");
-	}
+	}*/
 				   
 	if (typeof(window._hzinitformcallback) == "function"){
 		window._hzinitformcallback($flow)		   
