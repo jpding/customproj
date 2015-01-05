@@ -1105,27 +1105,15 @@ function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
 	ds.update(sql, [uuid(), new java.sql.Timestamp(java.lang.System.currentTimeMillis()), citaskPath, uid_, formName, wordField, user, sessionid]);
 }
 
-/**
- * 打开一个文档时，应该把该文档的打开的相关信息记录到，资源冲突表里面，当下一个人打开时，界面自动提示
- * 
- * @param {} citaskPath  采集任务的资源路径
- * @param {} formName    表单名
- * @param {} wordField   word存储的字段，目前不支持，浮动表的附件
- */
-function lock(citaskPath, formName, wordField){
+function unlock(citaskPath, formName, wordField){
 	var lockObj = lockService.createLock();
-	lockObj.addWriteLocks(SZ_CUSTOM_CONFLICT);
+	lockObj.addReadLocks(SZ_CUSTOM_CONFLICT);
 	lockObj.lock(TIME_ONE_DAY);
 	try{
-		var user = sz.security.getCurrentUser();
 		
 	}finally{
-		lock.unlock();
+		lockObj.unlock();
 	}
-}
-
-function unlock(citaskPath, formName, wordField){
-	
 }
 
 /**
@@ -1134,7 +1122,7 @@ function unlock(citaskPath, formName, wordField){
  * @param {} formName
  * @param {} wordfield
  */
-function isLock(citaskPath, formName, wordfield){
+function isLock(citaskPath, uid, formName, wordField, sessionid){
 	
 }
 
