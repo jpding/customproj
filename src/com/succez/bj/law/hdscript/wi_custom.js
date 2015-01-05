@@ -30,8 +30,13 @@ $.extend({
 		var dataMgr = fillforms.datamgr;
 		fillforms.endEdit({
 			success:function(){
-				dataMgr.audit({
-					success:function(){
+					dataMgr.audit({success:function(){
+						var errorCnt = dataMgr.getFormsData().getFailAuditsCount();
+						if (errorCnt > 0){
+							var submitBtn = $flow.getButton('wisubmit');
+							if (submitBtn) submitBtn.setDisable(false);
+						}
+						//判断是否有审核错误
 						if(isSave){
 							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(){
 								var funcname = "save_"+formName;
@@ -117,6 +122,8 @@ function oninitwiform($flow){
 		var formName = form.getCurrentFormName();
 		
 		$flow.addButton({id:'wisubmit',caption:"送审",icon:"sz-app-icon-run",next:"cancel",click:function(event){
+			var submitBtn = $flow.getButton('wisubmit');
+			if (submitBtn) submitBtn.setDisable(true);
 			$.checkSubmitAudit($flow, formName, false);				
 		}});
 		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
@@ -124,18 +131,12 @@ function oninitwiform($flow){
 		}});
 		
 		$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(inst){
-			var submitBtn = $flow.getButton('wisubmit');
-			if (submitBtn) submitBtn.setDisable(true);
 			sz.commons.CheckSaved.getInstance().setModified();
 			if(window.parent && $(window.parent.document).find("iframe").length>0){
-				/**
-				 * var url = sz.sys.ctx("/showcontent?path=LAWCONT:%5C/workflows%5C/%5Cu6CD5%5Cu5F8B%5Cu4E1A%5Cu52A1%5Cu7CFB%5Cu7EDF%5C/CONT_INFO2&amp;form=ISUBMIT")
-				 * window.parent.navTab.openTab("navtreedom_34",url ,{title:"我送审", fresh:true, external:true})
-				 */
 				var surl = sz.sys.ctx("/meta/LAWCONT/others/law.js");
 				$.getScript(surl, function(){
 					var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
-					var url = "/meta/LAWCONT:/analyses/maintain/home/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false";
+					var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false";
 					sz.custom.wi.showReportDlg(url, dlgParams, {ok:function(rpt){
 					}});
 				});
@@ -143,8 +144,20 @@ function oninitwiform($flow){
 		});
 	}
 	
+	/**
+	 * 重载点击事件，点击的时候直接预览内容
+	 */
+	if($flow.form){
+		var form = $flow.getForm().getCurrentForm();
+		sz.ci.custom.uploadattachment.refactorAllAttachmentClick(form);
+	}
+	
 	if(sz.utils.browser.msielt10){
 		$(".sz-prst-form").find("a").attr("href","#");
+	}
+				   
+	if (typeof(window._hzinitformcallback) == "function"){
+		window._hzinitformcallback($flow)		   
 	}
 }
 
@@ -178,6 +191,24 @@ function hiddenWIButtons($flow, buttons){
  * 表单中
  */
 (function($){
+	var hzutils = sz.sys.namespace("sz.ci.custom.hzutils");
+	hzutils.removeTextLink = function($dom,textids){
+		if (textids){
+			for (var i=0;i<textids.length;i++){
+				var id = textids[i];
+				var dom = $("#"+id,$dom);
+				if (dom){
+					var text = dom.text();
+					var aDom = dom.find("a");
+					if(aDom){
+						aDom.remove();
+						dom.text(text).css("color","black").css("text-decoration" , "none");
+					}
+				}
+			}
+		};
+	}
+	
  	var upload = sz.sys.namespace("sz.ci.custom.uploadattachment");
  	
  	upload.WORD_URL = "/meta/LAWCONT/others/word/wordedit.action";
@@ -185,13 +216,17 @@ function hiddenWIButtons($flow, buttons){
 	/**
 	 *	范本引入
 	 */
-	upload.uploadAndEditContractByModel = function($form, compid) {
+	upload.uploadAndEditContractByModel = function($form, compid,callback) {
 		var compObj = $form.getComponent(compid);
 		var val = compObj.getAttachmentValue();
 		if (val != null){
-			upload.editAttachmentAsDoc($form, compid);
+			upload.makeTemplateContract($form, compid, callback);
+			/*
+			 * upload.editAttachmentAsDoc($form, compid);
+			 */
 			return;
 		}
+		
 		var uid = $form.getComponent("fb_uid").val();
 		var data = {
 			resid		        : 18907146,
@@ -214,7 +249,7 @@ function hiddenWIButtons($flow, buttons){
 			success		      : function(info) {
 				var newInfo = $form.getFormData().getAttachment(compid);
 				compObj.setAttachmentValue(newInfo);
-				upload.editAttachmentAsDoc($form, compid);
+				upload.editAttachmentAsDoc($form, compid,callback);
 			}
 		};
 	
@@ -260,19 +295,8 @@ function hiddenWIButtons($flow, buttons){
 				if(!attachmentInf){
 					return null;
 				}
-				var customUrl = sz.sys.ctx(upload.WORD_URL);
-				/**
-				 * /cifill/downloadAttachment?resid=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
-				 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord
-				 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord&path=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
-				 */
-				var url = attachmentInf.url;
-				var idx = url.indexOf("?");
-				url = url.substring(idx);
-				var resid = sz.utils.getParameterOfUrl("resid", url);
-				url = sz.utils.setParameterOfUrl("path", resid, url);
-				url = customUrl+sz.utils.setParameterOfUrl("method", "downloadFormWord", url);
-				attachmentInf.url = url;
+				
+				attachmentInf.url = upload.refactorAttachmentUrl("downloadFormWord", attachmentInf.url);
 				if(!attachmentInf.name){
 					attachmentInf.name = "word.doc";
 				}
@@ -325,7 +349,10 @@ function hiddenWIButtons($flow, buttons){
 					    nargs.success(JSON.parse(info));
 					    success && success();
 				    }
-				    window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
+				    /**
+				     * window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
+				     */
+				    window.open(sz.sys.ctx(upload.WORD_URL+"?namespace=" + nmspace));
 			    });
 			}
 		}
@@ -346,5 +373,96 @@ function hiddenWIButtons($flow, buttons){
 			result[compData.compinf.dbfield] = vv;
 		}
 		return result;
+	}
+	
+	/**
+	 * 生成范本合同：
+	 *   1.如果表单里面还没有合同，那么直接取出范本，根据表单字段生成并存储到草稿中
+	 *   2.如果存在合同，那么最开始应该从合同表单里面取出，在存储的草稿中
+	 *   3.如果存在合同，并且在草稿中，那么就从草稿中重新取出合同
+	 */
+	upload.makeTemplateContract = function($form, compid, callback){
+		var compObj = $form.getComponent(compid);
+		var attachmentVal = compObj.getAttachmentValue();
+		if (attachmentVal != null){
+			/**
+			 * 2、3 从表单或者草稿中取出合同
+			 */
+			var data = {
+				formdatas:JSON.stringify(upload.getFillFormDatas($form)),
+				formName		    : $form.getFormName(),
+				compid		      : compid
+			};
+			
+			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
+			$.post(url, data, function(info){
+				compObj.setAttachmentValue(info);
+				upload.editAttachmentAsDoc($form, compid,callback);
+			});
+		}else{
+			/**
+			 * 1.从范本里面取出合同
+			 */
+			
+		}
+	}
+	
+	/**
+	 * 重构表单中的link地址，改用脚本实现
+	 */
+	upload.refactorAttachmentUrl = function(method, srcUrl){
+		var customUrl = sz.sys.ctx(upload.WORD_URL);
+		/**
+		 * /cifill/downloadAttachment?resid=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
+		 * /cifill/downloadAttachment?resid=18907146&dataperiod=20141221&datahierarchies=ORG%253DtestOrg%2526UID%253D38491bcb84ee4156a67cb2a9608661e4&rowKey=&dwTable=HZ_CONT_INFO&fileContentField=HTWB&fileNameField=FN0
+		 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord
+		 * /meta/LAWCONT/others/word/wordedit.action?method=downloadFormWord&path=18907146&id=38b59b87-5362-4424-8b51-124837a52a8d
+		 */
+		var url = srcUrl;
+		var idx = url.indexOf("?");
+		url = url.substring(idx);
+		var resid = sz.utils.getParameterOfUrl("resid", url);
+		url = sz.utils.setParameterOfUrl("path", resid, url);
+		url = customUrl+sz.utils.setParameterOfUrl("method", method, url);
+		/**
+		 * attachmentInf.name = "word.doc";
+		 */
+		return url;
+	}
+	
+	/**
+	 * 重设表单中附件的点击事件
+	 */
+	upload.refactorAttachmentClick = function(fileComp){
+		if(!fileComp)
+			return;
+		
+		fileComp.uploadComponent.one("clickdownload", function(event) {
+			var url = fileComp.$dom.find("a[target]").attr("href");
+			if (url) {
+				var idx = url.indexOf("?");
+				var params = url.substring(idx+1);
+				var resid = sz.utils.getParameterOfUrl("resid", params);
+				params += "&path="+resid;
+				var openUrl = sz.sys.ctx("/meta/LAWCONT/others/word/showfile.action?")+params;
+				window.open(openUrl);
+			}
+			/**
+			 * IE下event.preventDefault()不行，可能是上传控件
+			 */
+			if(window.event){
+				window.event.returnValue = false;
+				window.event.cancelBubble = true;
+			}
+			event.preventDefault();
+			return false;
+		});
+	}
+	
+	upload.refactorAllAttachmentClick = function(form){
+		var comps = form.$dom.find(".sz-commons-fileupload");
+		comps.each(function(idx, vv){
+			upload.refactorAttachmentClick($$(vv));
+		})
 	}
 })(jQuery)
