@@ -554,10 +554,10 @@ function downloadFormWord(req, res){
 			 * TODO
 			 * citaskPath, uid, formName, wordField, sessionid)
 			 */
-			var uidField = ciTask.getDetailGrainDef().getIDField();
+			var uidField = citask.getDetailGrainDef().getIDField();
 			var uid = getDetailIdValue(datahierarchies, uidField);
 			var sessionid = req.getSession().getId();
-			var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
+			var lockObj = null;//checkLock(resid, uid, dwTable, fileContentField, sessionid);
 			if(lockObj != null){
 				downloadType = ProtectionType.READ_ONLY;
 			}
@@ -1043,7 +1043,7 @@ function insertWatermarkIntoHeader(watermarkPara, sect, headerType){
  *   
  *  
  */
-var lockService = BeanGetter.getBean(com.succez.commons.service.lock.LockService);
+var lockService = BeanGetter.getBean(com.succez.commons.service.impl.lock.LockServiceImpl);
 var activeusers = BeanGetter.getBean(com.succez.security.api.session.ActiveUsers);
 var conflictTableResource = lockService.createResourceByPath("/SUCCEZBJHD/SZ_CUSTOM_CONFLICT");
 var TIME_ONE_DAY = 86400000;
