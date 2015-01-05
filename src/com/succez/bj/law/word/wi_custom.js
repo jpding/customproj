@@ -433,12 +433,13 @@ function hiddenWIButtons($flow, buttons){
 	/**
 	 * 重设表单中附件的点击事件
 	 */
-	upload.refactorAttachmentClick = function(comp){
-		comp.edit.uploadComponent.one("clickdownload", function(event) {
-			var attachInf = comp.getAttachmentValue();
-			if (attachInf && attachInf.url) {
-				var url = attachInf.url;
-				
+	upload.refactorAttachmentClick = function(fileComp){
+		if(!fileComp)
+			return;
+		
+		fileComp.uploadComponent.one("clickdownload", function(event) {
+			var url = fileComp.$dom.find("a[target]").attr("href");
+			if (url) {
 				var idx = url.indexOf("?");
 				var params = url.substring(idx+1);
 				var resid = sz.utils.getParameterOfUrl("resid", params);
@@ -459,11 +460,9 @@ function hiddenWIButtons($flow, buttons){
 	}
 	
 	upload.refactorAllAttachmentClick = function(form){
-		var comps = form.$dom.find(".sz-prst-attachment");
+		var comps = form.$dom.find(".sz-commons-fileupload");
 		comps.each(function(idx, vv){
-			var $comp = $(vv);
-			var comp = form.getComponent($comp.attr("id"));
-			upload.refactorAttachmentClick(comp);
+			upload.refactorAttachmentClick($$(vv));
 		})
 	}
 })(jQuery)
