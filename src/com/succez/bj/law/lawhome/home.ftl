@@ -19,11 +19,12 @@
 		}
 		#navMenu {height:45px;padding-left:210px;}
 		#leftside, #container, #splitBar, #splitBarProxy{top:125px}
-		#container {width:95%;}
 		#header .nav  li  a {color:#1e6ec4;}
 		#header .nav {
 			top:38px;
 		}
+		
+		#container {width:95%;}
 		
 		#message span{
 			position:relative;
