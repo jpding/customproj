@@ -9,6 +9,7 @@ var IOUtils   = com.succez.commons.util.io.IOUtils;
 var ContentTypeUtils = com.succez.commons.util.ContentTypeUtils;
 
 var ProtectionType = com.aspose.words.ProtectionType;
+var URLDecoder = java.net.URLDecoder;
 
 /**
  * 在线显示表单、事实表中附件，支持word、pdf、图片等
@@ -73,13 +74,19 @@ function showWord(res, attachment){
 function getAttachment(req, out){
 	var resid = req.path;
 	var datahierarchies = req.datahierarchies;
+	println("datahierarchies:"+datahierarchies);
+	
+	var dedatahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
+	println("datahierarchies:"+dedatahierarchies);
+	
 	var dataperiod = req.dataperiod;
 	var rowKey = req.rowKey;
 	var dwTable = req.dwTable;
 	var fileContentField = req.fileContentField;
 	var fileNameField    = req.fileNameField;
 	var citask = serviceAttachments.getCITask(resid);
-	var attachmentInf = serviceAttachments.getAttachment(citask, dataperiod,datahierarchies, rowKey,
+	
+	var attachmentInf = serviceAttachments.getAttachment(citask, dataperiod, dedatahierarchies, rowKey,
 		dwTable, fileContentField, fileNameField, out);
 	
 	return attachmentInf;
