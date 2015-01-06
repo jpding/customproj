@@ -509,7 +509,7 @@ function hiddenWIButtons($flow, buttons){
 		});
 		
 		var datas = {};
-		$.extend(datas, widlg.REPORTDEFAULTPARAMS);
+		$.extend(datas, upload.REPORTDEFAULTPARAMS);
 		
 		this.reportdlg.show({
 			"url":url,
@@ -518,8 +518,16 @@ function hiddenWIButtons($flow, buttons){
 	}
 	
 	/**
+	 * 合同编号对话框
+	 */
+	upload.showGCBH = function(callback){
+		var dlgParams = {title:"选择合同工程编号",width:640,height:400};
+		var url = "/meta/LAWCONT/analyses/pro_sys_intergartion/GCHXX";
+		upload.showReportDlg(url, dlgParams, callback);
+	}
+	
+	/**
 	 * 上面的名字太长，下面起一个别名，以后都使用下面的函数
 	 */
-	var law = sz.sys.namespace("sz.law");
-	law.upload = upload;
+	sz.law = upload;
 })(jQuery)
