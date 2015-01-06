@@ -486,10 +486,13 @@ function hiddenWIButtons($flow, buttons){
 	 */
 	upload.showReportDlg = function(rptUrl, dlgParams, callbackfunc, reportParams){
 		var url = sz.sys.ctx(rptUrl);
+		var newParams = dlgParams || {};
+		newParams["showhelp"] = false;
+			
 		if(!this.reportdlg){
-			this.reportdlg = sz.commons.Dialog.create(dlgParams);
+			this.reportdlg = sz.commons.Dialog.create(newParams);
 		} 
-		this.reportdlg.setParams(dlgParams);
+		this.reportdlg.setParams(newParams);
 		var self = this;
 		if(callbackfunc){
 			$.each(callbackfunc, function(k, v){
@@ -523,6 +526,15 @@ function hiddenWIButtons($flow, buttons){
 	upload.showGCBH = function(callback){
 		var dlgParams = {title:"选择合同工程编号",width:640,height:400};
 		var url = "/meta/LAWCONT/analyses/pro_sys_intergartion/GCHXX";
+		upload.showReportDlg(url, dlgParams, callback);
+	}
+	
+	/**
+	 * 弹出供应商对话框
+	 */
+	upload.showGYS = function(callback){
+		var dlgParams = {title:"供应商信息",width:670,height:350};
+		var url = "/meta/LAWCONT/analyses/pro_sys_intergartion/GYSXXB";
 		upload.showReportDlg(url, dlgParams, callback);
 	}
 	
