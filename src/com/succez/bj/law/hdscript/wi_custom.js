@@ -462,4 +462,23 @@ function hiddenWIButtons($flow, buttons){
 			upload.refactorAttachmentClick($$(vv));
 		})
 	}
+	
+	/**
+	 * 上传附件，抽取公用的函数
+	 */
+	upload.uploadFile = function(form, floatCell, attachmentField){
+		var floatarea = form.getFloatArea(floatCell);
+		var row = floatarea.lastRow();
+		if(!row.isBlank()){
+			row = floatarea.newRow();
+		}
+		var cicomp = row.getComponent(attachmentField);
+		cicomp.getInput().uploadFile();
+	}
+	
+	/**
+	 * 上面的名字太长，下面起一个别名，以后都使用下面的函数
+	 */
+	var law = sz.sys.namespace("sz.law");
+	law.upload = upload;
 })(jQuery)
