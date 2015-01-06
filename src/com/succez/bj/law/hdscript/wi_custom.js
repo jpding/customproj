@@ -456,6 +456,9 @@ function hiddenWIButtons($flow, buttons){
 		});
 	}
 	
+	/**
+	 * 重设表单中附件点点击事件，便于用户点击的时候，可以在线预览，目前只支持图片、word、pdf
+	 */
 	upload.refactorAllAttachmentClick = function(form){
 		var comps = form.$dom.find(".sz-commons-fileupload");
 		comps.each(function(idx, vv){
@@ -474,6 +477,44 @@ function hiddenWIButtons($flow, buttons){
 		}
 		var cicomp = row.getComponent(attachmentField);
 		cicomp.getInput().uploadFile();
+	}
+	
+	upload.REPORTDEFAULTPARAMS = {$sys_calcnow:true, $sys_disableCache:true, $sys_showCaptionPanel:false};
+	
+	/**
+	 * 把报表显示在对话框里面，并且支持选择行，回调事件等
+	 */
+	upload.showReportDlg = function(rptUrl, dlgParams, callbackfunc, reportParams){
+		var url = sz.sys.ctx(rptUrl);
+		if(!this.reportdlg){
+			this.reportdlg = sz.commons.Dialog.create(dlgParams);
+		} 
+		this.reportdlg.setParams(dlgParams);
+		var self = this;
+		if(callbackfunc){
+			$.each(callbackfunc, function(k, v){
+				self.reportdlg.on(k, function(){
+					var rpt = sz.bi.prst.Report.getInstance({pdom:this.basedom()});
+					v(rpt);
+				});
+			});
+		}
+		
+		this.reportdlg.on("close", function(){
+			if(callbackfunc){
+				$.each(callbackfunc, function(k, v){
+					self.reportdlg.off(k);
+				});
+			}	
+		});
+		
+		var datas = {};
+		$.extend(datas, widlg.REPORTDEFAULTPARAMS);
+		
+		this.reportdlg.show({
+			"url":url,
+			data : datas
+		});
 	}
 	
 	/**
