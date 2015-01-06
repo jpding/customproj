@@ -31,15 +31,10 @@ $.extend({
 		fillforms.endEdit({
 			success:function(){
 					dataMgr.audit({success:function(){
-						var errorCnt = dataMgr.getFormsData().getFailAuditsCount();
-						if (errorCnt > 0){
-							var submitBtn = $flow.getButton('wisubmit');
-							if (submitBtn) submitBtn.setDisable(false);
-						}
 						//判断是否有审核错误
 						if(isSave){
-							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(){
-								var funcname = "save_"+formName;
+							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(submitArgs,instArgs){
+								var funcname = "save_"+formName;debugger;
 								if($.wicallbacks && $.wicallbacks[funcname]){
 									$.wicallbacks[funcname]();
 								}else{
@@ -71,7 +66,7 @@ $.extend({
 									sz.custom.wi.saveFormCallback();
 								}
 							}	
-							$flow.startFlow({datas:{"dim":"value"},success:function(inst){
+							$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
 								var funcname = "submit_"+formName;
 								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
 									if(sz.custom && sz.custom.wi && sz.custom.wi.on_submitcallback){
@@ -80,7 +75,7 @@ $.extend({
 									}
 								}	
 								if($.wicallbacks && $.wicallbacks["submit_"+formName]){
-									$.wicallbacks[funcname](inst);
+									$.wicallbacks[funcname](result);
 								}else{
 									sz.commons.CheckSaved.getInstance().setModified();
 									window.location.reload();
@@ -122,21 +117,22 @@ function oninitwiform($flow){
 		var formName = form.getCurrentFormName();
 		
 		$flow.addButton({id:'wisubmit',caption:"送审",icon:"sz-app-icon-run",next:"cancel",click:function(event){
-			var submitBtn = $flow.getButton('wisubmit');
-			if (submitBtn) submitBtn.setDisable(true);
 			$.checkSubmitAudit($flow, formName, false);				
 		}});
 		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
 			$.checkSubmitAudit($flow, formName, true);
 		}});
 		
-		$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(inst){
+		$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(result){
 			sz.commons.CheckSaved.getInstance().setModified();
 			if(window.parent && $(window.parent.document).find("iframe").length>0){
 				var surl = sz.sys.ctx("/meta/LAWCONT/others/law.js");
 				$.getScript(surl, function(){
+					var instid = result != null ? result["instanceid"] : "";
+					var wiresid  = $flow.resid;
+					var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
 					var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
-					var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false";
+					var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
 					sz.custom.wi.showReportDlg(url, dlgParams, {ok:function(rpt){
 					}});
 				});
