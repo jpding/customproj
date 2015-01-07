@@ -551,15 +551,19 @@ function downloadFormWord(req, res){
 			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
 			/**
 			 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
+			 * 只是需要修改的附件，才需要锁定，例如：合同文本，规章制度文本，而除此之外的文档，不需要
+			 * 冲突，大家都能看
 			 * TODO
 			 * citaskPath, uid, formName, wordField, sessionid)
 			 */
-			var uidField = citask.getDetailGrainDef().getIDField();
-			var uid = getDetailIdValue(datahierarchies, uidField);
-			var sessionid = req.getSession().getId();
-			var lockObj = null;//checkLock(resid, uid, dwTable, fileContentField, sessionid);
-			if(lockObj != null){
-				downloadType = ProtectionType.READ_ONLY;
+			if(needCheckConflict(resid, fileContentField)){
+				var uidField = citask.getDetailGrainDef().getIDField();
+				var uid = getDetailIdValue(datahierarchies, uidField);
+				var sessionid = req.getSession().getId();
+				var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
+				if(lockObj != null){
+					downloadType = ProtectionType.READ_ONLY;
+				}
 			}
 		} else if(state == "-1"){
 			/**
@@ -1049,15 +1053,25 @@ var conflictTableResource = lockService.createResourceByPath("/SUCCEZBJHD/SZ_CUS
 var TIME_ONE_DAY = 86400000;
 
 /**
+ * 需要处理冲突
+ */
+function needCheckConflict(citaskPath, wordField){
+	return true;
+}
+
+/**
  * 检查某个文档是否被锁定了，如果锁定了，那么就返回锁定信息，反之则返回null
  * @return {}
  */
 function checkLock(citaskPath, uid, formName, wordField, sessionid){
 	var lockObj = lockService.createLock();
-	lockObj.addReadLocks(SZ_CUSTOM_CONFLICT);
+	lockObj.addReadLocks(conflictTableResource);
 	lockObj.lock(TIME_ONE_DAY);
 	try{
-		var queryObj = queryLockObj(citaskPath, uid, formName);
+		if(ISDEBUG){
+			println("checkLock:"+JSON.stringify({"citaskpath":citaskPath,"uid":uid,"formName":formName,"wordField":wordField}));	
+		}
+		var queryObj = queryLockObj(citaskPath, uid, formName, wordField);
 		if(queryObj == null){
 			/**
 			 * 插入信息
@@ -1072,9 +1086,19 @@ function checkLock(citaskPath, uid, formName, wordField, sessionid){
 	}
 }
 
+/**
+ * 返回锁定信息，如果没有锁定则返回空，有些锁定信息是过期的，还有可能是用户遗留下来的，故要返回
+ * 真实的锁定信息，判断方式如下：
+ * 1.发现该条锁定信息，获取其sessionid和锁定人员，并且都是活动的，那么就认为其有效，反之则无效，删除该条锁定信息
+ * @param {} citaskPath
+ * @param {} uid_
+ * @param {} formName
+ * @param {} wordField
+ * @return {}
+ */
 function queryLockObj(citaskPath, uid_, formName, wordField){
 	var ds = sz.db.getDefaultDataSource();
-	var rs = ds.select("select ID_, CREATETIME_,USEID_, SESSIONID_ from SZ_CUSTOM_CONFLICT where TASKID_=? and UID_= ? and formname_ = ? and attachfield_=?", 
+	var rs = ds.select("select ID_, CREATETIME_,USERID_, SESSIONID_ from SZ_CUSTOM_CONFLICT where TASKID_=? and UID_= ? and formname_ = ? and attachfield_=?", 
 			[citaskPath, uid_, formName, wordField]);
 	if(rs == null || rs.length == 0 || rs[0].length == 0 || rs[0][0] == null){
 		return null;
@@ -1085,16 +1109,17 @@ function queryLockObj(citaskPath, uid_, formName, wordField){
 	for(var i=0; i<actUsers.size(); i++){
 		var login = actUsers.get(i);
 		var sessionid = login.getSessionId();
-		if(sessionid == lockObj.sessionid ){
-			/**
-			 * 删除该session
-			 */
-			ds.update("delete from SZ_CUSTOM_CONFLICT where ID_=?",[lockObj.id]);
-			
+		var userid = login.getUser().getId();
+		println("activeuser:"+userid);
+		if(sessionid == lockObj.sessionid && lockObj.user == userid){
 			return lockObj;
 		}
 	}
-	
+
+	/**
+	 * 删除无效的锁定
+	 */
+	ds.update("delete from SZ_CUSTOM_CONFLICT where ID_=?",[lockObj.id]);
 	return null;
 }
 
@@ -1105,12 +1130,27 @@ function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
 	ds.update(sql, [uuid(), new java.sql.Timestamp(java.lang.System.currentTimeMillis()), citaskPath, uid_, formName, wordField, user, sessionid]);
 }
 
-function unlock(citaskPath, formName, wordField){
+function unlock(req, res){
+	var fileContentField = req.fileContentField;
+	var citaskid = req.path;
+	unlockObj(citaskid, null, fileContentField);
+}
+
+/**
+ * 关闭打开的word时，要自动解锁
+ * @param {} citaskPath
+ * @param {} formName
+ * @param {} wordField
+ */
+function unlockObj(citaskPath, formName, wordField){
 	var lockObj = lockService.createLock();
 	lockObj.addReadLocks(SZ_CUSTOM_CONFLICT);
 	lockObj.lock(TIME_ONE_DAY);
 	try{
-		
+		var user = sz.security.getCurrentUser().id;
+		var ds = sz.db.getDefaultDataSource();
+		var sql = "delete from SZ_CUSTOM_CONFLICT where taskid_=? and userid_=? and attachfield_=?";
+		ds.update(sql, [citaskPath, user, wordField]);
 	}finally{
 		lockObj.unlock();
 	}
