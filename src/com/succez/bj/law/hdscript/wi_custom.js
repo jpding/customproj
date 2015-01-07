@@ -524,7 +524,7 @@ function hiddenWIButtons($flow, buttons){
 	 * 合同编号对话框
 	 */
 	upload.showGCBH = function(callback){
-		var dlgParams = {title:"选择合同工程编号",width:640,height:400};
+		var dlgParams = {title:"工程编号",width:640,height:400};
 		var url = "/meta/LAWCONT/analyses/pro_sys_intergartion/GCHXX";
 		upload.showReportDlg(url, dlgParams, callback);
 	}
@@ -536,6 +536,30 @@ function hiddenWIButtons($flow, buttons){
 		var dlgParams = {title:"供应商信息",width:670,height:350};
 		var url = "/meta/LAWCONT/analyses/pro_sys_intergartion/GYSXXB";
 		upload.showReportDlg(url, dlgParams, callback);
+	}
+	
+	/**
+	 * 给浮动表添加一行记录
+	 * url       弹出对话框报表url
+	 * dlgParams 对话框大小相关参数
+	 * floatCell 浮动表元名，要全部小写，弹出框点击确定时，会给表单元格设置值，例如：table5.b2
+	 * selectIndex 弹出对话框报表，需要选择的列
+	 */
+	upload.addFloatRow = function(url, dlgParams, form, floatCell, selectIndex){
+		if(!selectIndex){
+			selectIndex = 0;
+		}
+		
+		sz.law.showReportDlg(url, dlgParams, {ok:function(rpt){
+			var uid = rpt.$seltable.getSelectedRowCellHint(selectIndex);
+			var floatArea = form.getFloatArea(floatCell);
+			var row = floatArea.lastRow();
+			if(!row.isBlank()){
+				row = floatArea.newRow();
+			}
+			var comp = row.getComponent(floatCell);
+			comp.val(uid);
+		}});
 	}
 	
 	/**
