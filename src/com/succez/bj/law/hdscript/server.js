@@ -82,6 +82,7 @@ function createConflictTable(){
 			createTable.addVarcharColumn("TASKID_", 100,null,false,"采集任务");
 			createTable.addVarcharColumn("UID_", 100,null,false,"明细表");
 			createTable.addVarcharColumn("FORMNAME_", 40,null,false,"表单名");
+			createTable.addVarcharColumn("ATTACHFIELD_", 40,null,false,"字段名");
 			createTable.addVarcharColumn("USERID_", 100,null,false,"用户名");
 			createTable.addVarcharColumn("SESSIONID_", 40,null,false,"用户访问ID");
 			createTable.createTable();
