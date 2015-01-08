@@ -523,7 +523,7 @@ function downloadFormWord(req, res){
 	var citask = serviceAttachments.getCITask(resid);
 	println("=========downloadFormWord==="+id+";resid:"+resid);
 	if(ISDEBUG){
-		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileNameField":fileNameField, "fileNameField":datahierarchies});
+		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileContentField":fileContentField, "datahierarchies":datahierarchies});
 	}
 	
 	if(StringUtils.isNotBlank(id)){
@@ -559,9 +559,13 @@ function downloadFormWord(req, res){
 			if(needCheckConflict(resid, fileContentField)){
 				var uidField = citask.getDetailGrainDef().getIDField();
 				var uid = getDetailIdValue(datahierarchies, uidField);
+				println("needLock:"+uid);
 				var sessionid = req.getSession().getId();
 				var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
 				if(lockObj != null){
+					if(ISDEBUG){
+						println("lockObj:"+lockObj.user+","+lockObj.createtime+","+lockObj.id);
+					}
 					downloadType = ProtectionType.READ_ONLY;
 				}
 			}
@@ -571,6 +575,7 @@ function downloadFormWord(req, res){
 			 */
 			downloadType = ProtectionType.READ_ONLY;
 		}
+		println("downloadFormWord:downloadType=="+downloadType);
 		writeWord(bins, res, downloadType, req.version == "Word.Application.11");			
 	}
 }
@@ -792,7 +797,7 @@ function auditFormSavingWord(req, res, ciTask, formName, compName){
 	}
 	var uid = ciTask.getDetailGrainDef().getIDField();
 	var facttable = ciTask.getDWTableInf(srcdwtable).getPath();
-	var dataHier  = req.datahierarchies;
+	var dataHier  = URLDecoder.decode(req.datahierarchies, "utf-8");
 	var keys = getDetailIdValue(dataHier, uid);
 	if(!keys){
 		throw new Error(dataHier+"找不到填报明细的内容!填报明细字段为："+uid);
@@ -1097,14 +1102,22 @@ function checkLock(citaskPath, uid, formName, wordField, sessionid){
  * @return {}
  */
 function queryLockObj(citaskPath, uid_, formName, wordField){
-	var ds = sz.db.getDefaultDataSource();
-	var rs = ds.select("select ID_, CREATETIME_,USERID_, SESSIONID_ from SZ_CUSTOM_CONFLICT where TASKID_=? and UID_= ? and formname_ = ? and attachfield_=?", 
-			[citaskPath, uid_, formName, wordField]);
-	if(rs == null || rs.length == 0 || rs[0].length == 0 || rs[0][0] == null){
+	var lockObj = queryLockObjInfo(citaskPath, uid_, formName, wordField);
+	if(lockObj == null){
 		return null;
-	}		
+	}
 	
-	var lockObj = {"user":rs[0][2], "sessionid":rs[0][3], "createtime":rs[0][1], "id":rs[0][0]};
+	/**
+	 * 如果是当前用户，重复打开，那么就删除先前的记录，重新加入
+	 */
+	var ds = sz.db.getDefaultDataSource();
+	var currUser = sz.security.getCurrentUser().id;
+	if(lockObj.user == currUser){
+		ds.update("delete from SZ_CUSTOM_CONFLICT where ID_=?",[lockObj.id]);
+		return null;
+	}
+	
+	
 	var actUsers = activeusers.getActiveUsers();
 	for(var i=0; i<actUsers.size(); i++){
 		var login = actUsers.get(i);
@@ -1115,12 +1128,27 @@ function queryLockObj(citaskPath, uid_, formName, wordField){
 			return lockObj;
 		}
 	}
-
+	
 	/**
 	 * 删除无效的锁定
 	 */
 	ds.update("delete from SZ_CUSTOM_CONFLICT where ID_=?",[lockObj.id]);
+	
 	return null;
+}
+
+function queryLockObjInfo(citaskPath, uid_, formName, wordField){
+	var ds = sz.db.getDefaultDataSource();
+	var rs = ds.select("select ID_, CREATETIME_,USERID_, SESSIONID_ from SZ_CUSTOM_CONFLICT where TASKID_=? and UID_= ? and formname_ = ? and attachfield_=?", 
+			[citaskPath, uid_, formName, wordField]);
+	if(rs == null || rs.length == 0 || rs[0].length == 0 || rs[0][0] == null){
+		return null;
+	}		
+	var lockObj = {"user":rs[0][2], "sessionid":rs[0][3], "createtime":rs[0][1], "id":rs[0][0]};
+	if(ISDEBUG){
+		println("queryLockObjInfo:"+lockObj.user+","+lockObj.id);
+	}
+	return lockObj;
 }
 
 function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
@@ -1130,9 +1158,46 @@ function insertLockObj(citaskPath, uid_, formName, wordField, sessionid){
 	ds.update(sql, [uuid(), new java.sql.Timestamp(java.lang.System.currentTimeMillis()), citaskPath, uid_, formName, wordField, user, sessionid]);
 }
 
+/**
+ * 显示锁定信息
+ * @param {} req
+ * @param {} res
+ */
+function showlockinfo(req, res){
+	var resid = req.path;
+	var datahierarchies = req.datahierarchies;
+	var dataperiod = req.dataperiod;
+	var rowKey = req.rowKey;
+	var dwTable = req.dwTable;
+	var fileContentField = req.fileContentField;
+	var fileNameField    = req.fileNameField;
+	if(needCheckConflict(resid, fileContentField)){
+		var citask = serviceAttachments.getCITask(resid);
+		var uidField = citask.getDetailGrainDef().getIDField();
+		var dehir = URLDecoder.decode(URLDecoder.decode(datahierarchies, "utf-8"),"utf-8");
+		var uid = getDetailIdValue(dehir, uidField);
+		log("showlockinfo", {"citask":resid, "uid":uid, "fileContentField":fileContentField,"dwTable":dwTable, "datahierarchies":datahierarchies, "dahie":dehir});
+		var lockObj = queryLockObjInfo(resid, uid, dwTable, fileContentField);
+		var currUser = sz.security.getCurrentUser().id;
+		if(lockObj.user == currUser){
+			return null;
+		}
+		return lockObj;
+	}
+	return null;
+}
+
+/**
+ * @request
+ * @param {} req
+ * @param {} res
+ */
 function unlock(req, res){
 	var fileContentField = req.fileContentField;
 	var citaskid = req.path;
+	if(ISDEBUG){
+		println("unlock:"+JSON.stringify({"citask":citaskid,"fileContentField":fileContentField, "user":sz.security.getCurrentUser().id}));
+	}
 	unlockObj(citaskid, null, fileContentField);
 }
 
@@ -1144,7 +1209,7 @@ function unlock(req, res){
  */
 function unlockObj(citaskPath, formName, wordField){
 	var lockObj = lockService.createLock();
-	lockObj.addReadLocks(SZ_CUSTOM_CONFLICT);
+	lockObj.addReadLocks(conflictTableResource);
 	lockObj.lock(TIME_ONE_DAY);
 	try{
 		var user = sz.security.getCurrentUser().id;

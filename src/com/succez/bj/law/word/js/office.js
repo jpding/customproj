@@ -178,6 +178,9 @@
 			this.showError("sz.ci.wsoffice.error.openurl");
 			return;
 		}
+		
+		this.openUrl = url;
+		
 		/**
 		 * 20140928 guob
 		 * 问题现象：采集草稿中在有contextpath的情况下编辑word会出现“您要查看的页面不存在”的问题
@@ -208,10 +211,69 @@
 		}
 		
 		this.aodControl.Open(url, null, "Word.Document");
+		
+		/**
+		 * word装入完成以后，如果该word有锁定的需求，那么需要显示锁定提示信息
+		 */
+		
+ 		this.showLockInfo();
+		
 		var editargs = this.editOffice.getArgs();
 		if (editargs && editargs.initPlugin) {
 			editargs.initPlugin(this.aodControl);
 		}
+	}
+	
+	/**
+	 * 显示锁定信息
+	 */
+	WSOffice.prototype.showLockInfo = function(){
+		var checkLockUrl = sz.sys.ctx(WSOffice.DOWNLOADURL+"?method=showlockinfo");
+		var params = this.getOpenParams();
+		params["resid"] = null;
+		$.post(checkLockUrl,
+		  params,
+		  function(data){
+		  	debugger;
+			if(data && data.user){
+				var user = data.user;
+				var createtime = new Date(data.createtime);
+				$.jGrowl("该文档 被“"+user+"”于"+createtime.toLocaleString()+"锁定!", { life: 4000 });
+			}
+		});
+	}
+	
+	/**
+	 * 解锁合同，
+	 */
+	WSOffice.prototype.unLock = function(){
+		var params = this.getOpenParams();
+		if(params["path"] && params["fileContentField"]){
+			var unLockUrl = sz.sys.ctx(WSOffice.DOWNLOADURL+"?method=unlock");
+			/**
+			 * 由于unLock是在unload里面调用，这里需要使用同步请求，不然会导致jQuery 自动abort
+			 */
+			$.ajax({
+			  url: unLockUrl,
+			  type:"POST",
+			  async:false,
+			  data:params
+			});
+		}
+	}
+	
+	WSOffice.prototype.getOpenParams = function(){
+		var args = ["resid", "path", "period", "datahierarchies", "formName", "fileContentField", "rowKey","dwTable"];
+		var result = {};
+		var self = this;
+		$.each(args, function(i, nm){
+			var vv = sz.utils.getParameter(nm);
+			if(vv != 0 && !vv || vv.length == 0){
+				vv =  sz.utils.getParameterOfUrl(nm, self.openUrl);
+			}
+			result[nm] = vv; 
+		})
+		return result;
 	}
 	
 	/**
@@ -226,9 +288,11 @@
 	 */
 	WSOffice.prototype.closeFile = function(){
 		if(this.aodControl){
-			this.aodControl.close(); 
+			this.aodControl.Close(); 
 			this.aodControl = null;
 		}
+		
+		this.unLock();
 	}
 
 	/**
