@@ -35,5 +35,8 @@ menubar必须设置为1，即显示menubar，否则会出现一个黑线，然�
 				})
 			</@script>
 		</div>
+		
+		<iframe id="ifm" style="width:500px;height:500px;right:0px;top:0px;position:absolute;display:none;">
+		</iframe>
 	</@body>
 </@sz.commons.htmlDirective>

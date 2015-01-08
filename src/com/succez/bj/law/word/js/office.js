@@ -234,11 +234,25 @@
 		$.post(checkLockUrl,
 		  params,
 		  function(data){
-		  	debugger;
 			if(data && data.user){
 				var user = data.user;
 				var createtime = new Date(data.createtime);
-				$.jGrowl("该文档 被“"+user+"”于"+createtime.toLocaleString()+"锁定!", { life: 4000 });
+				$.jGrowl("该文档 被“"+user+"”于"+createtime.toLocaleString()+"锁定!", { 
+					life: 4000 ,
+					afterOpen : function(){
+						var ifm = $("#ifm"); 
+						var dom = $(".jGrowl");
+						ifm.css("left", dom.offset().left + "px");
+						ifm.css("top",dom.offset().top + "px");
+						ifm.css("width",dom.width() + "px");
+						ifm.css("height",dom.height() + "px");
+						ifm.show();
+					},
+					
+					beforeClose : function(){
+						$("#ifm").hide();
+					}
+				});
 			}
 		});
 	}
