@@ -18,6 +18,7 @@ var CIMetaConsts = com.succez.bi.ci.meta.CIMetaConsts;
 
 var ProtectionType = com.aspose.words.ProtectionType;
 var URLDecoder = java.net.URLDecoder;
+var URLEncoder = java.net.URLEncoder;
 
 /**
  * 在线显示表单、事实表中附件，支持word、pdf、图片等
@@ -51,6 +52,7 @@ function execute(req, res){
 			res.setContentType(contentType);
 			showPdf(res, myOut);
 		}else{
+			res.addHeader("Content-Disposition", "attachment;filename="+URLEncoder.encode(filename,"UTF-8"));
 			showPdf(res, myOut);
 		}
 	}finally{
