@@ -349,10 +349,16 @@ function initUI(_box){
 			return;
 		}
 		this._currentCount = count;
+		
 		/**
-		 * 直接刷新报表，最好由消息机制添加事件，有新的消息时，
+		 * 直接刷新报表，最好由消息机制添加事件，有新的消息时，如果是第一次打开，则不不进行属性
 		 */
-		this._refreshAllReport();
+		if(this.isFirstQuery){
+			this._refreshAllReport();
+		}
+		
+		this.isFirstQuery = true;
+		
 		/**
 		 * count可能会存在三种状态： 
 		 * count==0  表示正常状态，没有任何新消息，此时隐藏消息格式
