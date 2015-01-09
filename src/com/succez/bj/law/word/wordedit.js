@@ -1178,6 +1178,10 @@ function showlockinfo(req, res){
 		var uid = getDetailIdValue(dehir, uidField);
 		log("showlockinfo", {"citask":resid, "uid":uid, "fileContentField":fileContentField,"dwTable":dwTable, "datahierarchies":datahierarchies, "dahie":dehir});
 		var lockObj = queryLockObjInfo(resid, uid, dwTable, fileContentField);
+		if(lockObj == null){
+			return null;
+		}
+		
 		var currUser = sz.security.getCurrentUser().id;
 		if(lockObj.user == currUser){
 			return null;
