@@ -191,6 +191,31 @@
 				top.navTab.openTab("custom_101",url ,{title:portal.find("span").text(), fresh:true, external:true});
 			}
 		});
+		
+		/**
+		 * 实现页面刷新方法，当有消息时，要提示首页要刷新，便于用户看到最新的状态
+		 */
+		var home = sz.sys.namespace("sz.law");
+		home.refreshAllReport = function(){
+			$(".sz-commons-widget-header-title em").each(function(i, v){
+				var portal = $(this).closest(".sz-commons-widget");
+				var iframe = portal.find("iframe");
+				
+				/**
+				 * iframe[0].contentWindow.location.reload();
+				 */
+				 if(iframe[0].contentWindow.$rpt){
+				 	var rpt = iframe[0].contentWindow.$rpt();
+				 	if(rpt){
+				 		rpt.recalc();
+				 	}else{
+				 		iframe[0].contentWindow.location.reload();
+				 	}
+				 }else{
+				 	iframe[0].contentWindow.location.reload();
+				 }
+			}); 
+		} 
 	</@script>
 </@sz.commons.html.body>
 </@sz.commons.htmlDirective>

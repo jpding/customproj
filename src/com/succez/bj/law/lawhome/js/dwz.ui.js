@@ -284,3 +284,111 @@ function initUI(_box){
 		fn($p);
 	});
 }
+
+/**
+ * 处理消息事件，当有新消息时，自动修改顶部的消息提示，并自动刷新首页
+ * 快捷消息控件，提供显示未读消息面板和轮询消息
+ * @author guob
+ * @createdata 20140617
+ * @depends sz.commons.floatpanel
+ */
+(function($) {
+	var PMessage = sz.sys.namespace("sz.metadata.PMessageEx");
+	
+	/**
+	 * 轮询请求消息个数
+	 * @params $container 轮询请求消息个数气泡显示的容器，必须的
+	 * @params timer 轮询的事件，没有设置默认为10000ms
+	 */
+	PMessage.queryMessageCount = function($container, timer) {
+		if(!$container){
+			return;
+		}
+		this.timer = timer;
+		this._initMessageCountDom($container);
+		this._focusCurrentWindw = true;
+		this._queryMessageCount();
+	}
+	
+	/**
+	 * 初始化消息个数的dom节点，其实就是一个小气泡dom， 在低浏览器（IE678）下是一个方形的，其他浏览器是一个原型或者椭圆形的
+	 */
+	PMessage._initMessageCountDom = function($container) {
+		if (this.$messageCount) {
+			return;
+		}
+		this.$messageCount = $("<span class='sz-metadata-pmessage-count'></span>")
+				.appendTo($container);
+	}
+	
+	/**
+	 * 发送请求未读消息个数
+	 */
+	PMessage._queryMessageCount = function() {
+		$.ajax({
+					url : sz.sys.ctx("/pmsgapi/unreadcount"),
+					success : function(count) {
+						PMessage._querySuccess(count);
+					},
+					error : function() {
+						/**
+						 * 如果轮询个数出现异常时不做任何处理，继续轮询
+						 */
+						PMessage._queryMessageCount_timer();
+						return false;
+					}
+				});
+	}
+	
+	/**
+	 * 请求成功后的处理
+	 */
+	PMessage._querySuccess = function(count) {
+		this._queryMessageCount_timer();
+		if (count === this._currentCount) {
+			return;
+		}
+		this._currentCount = count;
+		/**
+		 * 直接刷新报表，最好由消息机制添加事件，有新的消息时，
+		 */
+		this._refreshAllReport();
+		/**
+		 * count可能会存在三种状态： 
+		 * count==0  表示正常状态，没有任何新消息，此时隐藏消息格式
+		 * count>0   表示正常状态，有新消息，显示消息格式 
+		 * count==-1 表示异常状态，服务器异常，此时不做任何事情
+		 */
+		if (count == 0) {
+			this.$messageCount.hide();
+		} else if (count > 0) {
+			this.$messageCount.css("display", "inline-block");
+			this.$messageCount.text(count);
+		}
+	}
+
+	/**
+	 * 每隔10s请求一次消息个数
+	 */
+	PMessage._queryMessageCount_timer = function() {
+		/**
+		 * 当已经不在了当前页面时不再启动timer来请求未读消息个数
+		 */
+		if (!this._focusCurrentWindw) {
+			return;
+		}
+		this._query_timer = setTimeout(function() {
+					PMessage._queryMessageCount();
+				}, this.timer != null ? this.timer : 30000);
+	}
+	
+	/**
+	 * 当有消息来时，自动刷新首页报表
+	 */
+	PMessage._refreshAllReport = function(){
+		var win = $("#framehome")[0].contentWindow;
+		if(win && win.sz && win.sz.law){
+			win.sz.law.refreshAllReport();
+		}
+	}
+})(jQuery);

@@ -107,8 +107,11 @@
 				debug:false,	// 调试模式 【true|false】
 				callback:function(){
 					initEnv2();
-					sz.metadata.PMessage.queryMessageCount($("#message"));
 					
+					sz.metadata.PMessageEx.queryMessageCount($("#message"));
+					/*
+					sz.metadata.PMessage.queryMessageCount($("#message"));
+					*/
 					var hrefArr = ['#pmsg','#phelp'];
 					$.each(hrefArr, function(k, v){
 						var ywHref = $(v); 
