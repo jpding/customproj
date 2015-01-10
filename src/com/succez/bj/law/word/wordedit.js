@@ -6,6 +6,7 @@ var scmgr = BeanGetter.getBean(com.succez.bi.ci.mgr.CIServiceCacheMgr);
 
 var mgr = BeanGetter.getBean(com.succez.commons.jdbc.ConnectionFactoryManager);
 var sf  = BeanGetter.getBean(com.succez.commons.jdbc.sql.SQLFactory);
+var uas = BeanGetter.getBean(com.succez.commons.util.domain.UserAgentService);
 
 var WebUtils = com.succez.commons.util.WebUtils;
 var StringUtils = com.succez.commons.util.StringUtils;
@@ -98,6 +99,15 @@ function execute(req, res){
 	if(req.namespace){
 		res.attr("namespace",req.namespace);
 	}
+	
+	/**
+	 * 如果非IE浏览器，那么直接下载word
+	 */
+	if(!uas.isMsie()){
+		directDownloadWord(req, res);
+		//return ;
+	}
+	
 	/**
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
 	 */
@@ -110,7 +120,7 @@ function execute(req, res){
  * @param {} req
  * @param {} res
  */
-function show(req, res){
+function directDownloadWord(req, res){
 	
 }
 
@@ -302,24 +312,27 @@ function writeWordByDoc(doc, out, downloadtype, is2003){
 	doc.protect(downloadtype);
 	/**
 	 * 2003的格式，有可能在2010下打开有问题，故目前都设置成2007的格式，不在保存成2003的格式
+	 * 
+	 * 2005-1-10 由于范本使用限制编辑功能，参考了帮助文档，只有doc和OOXML两种格式才支持
 	 */
-	//1 doc  8 docx
-	doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
+	//doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
+	doc.save(out,SaveFormat.DOC);
 }
 
 
 /**
  * 点击保存时，保存先前打开的word文件
- */
+ *
 function uploadWord(req, res){
 	var params = getDownloadParam(req);
 	var wordfile = getUploadFile(req);
-	/**
-	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
-	 */
+	
+	 //防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
+	 
 	log("uploadWord", params);
 	//saveWordToDb(params, file);
 }
+*/
 
 /**
  * 从req获取上传文件，一般只有一个文件，是一个map对象
@@ -406,7 +419,7 @@ function getMetaEntity(args){
 }
 
 /**
- * 把文件存储到数据库
+ * 把文件存储到数据库，最好不要直接调用该函数，该函数没有通过CI
  * @param {} args  url链接上的相关参数  {facttable:xx1,wordfield:xx2,keyfield:xx3,keys:xy}
  * @param {} file  插件保存时,上传到服务器端的临时文件
  */
@@ -610,7 +623,7 @@ function saveDraft(req, res){
 	var srcdwtable = ciattachment["dwTable"];
 
 	var citask = serviceAttachments.getCITask(srctaskid);
-	var file = tempFileService.createTempFile(null);
+	var file = tempFileService.createTempFile("doc");
 	try {
 		var srcAttachment = null;
 		var out = new FileOutputStream(file);
@@ -667,7 +680,7 @@ function insertTemplateBefore(file, formDatas){
 	 */
 	makeTemplateContract(doc, formDatas);
 	
-	doc.save(file);
+	doc.save(file, SaveFormat.DOC);
 }
 
 /**
@@ -846,7 +859,11 @@ function downloadDraftAttachment(req, res, task, id){
 			var downloadType = -1;
 			var doc = new Document(input);
 			if(isTemplateContract(doc)){
-				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
+				/**
+				 * 采用限制编辑实现，不在使用窗体的方式实现，原因是使用窗体，不好控制word格式
+				 */
+				downloadType = ProtectionType.READ_ONLY;
+				//downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
 			}
 			println("downloadDraftAttachment=======downloadType=="+downloadType);
 			writeWordByDoc(doc, out, downloadType, req.version == "Word.Application.11");
