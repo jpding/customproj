@@ -116,18 +116,21 @@
 <@sz.commons.html.body>		
 <div class="custom-portal-scroll">
 	<div class="custom-portal-container">
-		<span class="custom-portal-layout">
-			<@sz.commons.widget id="kjfs" title="快捷方式">
-				<div class="custom-portal-news">
-					<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/report_shortcut&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false&amp;$sys_disableCache=true')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
-				</div>
-				<#---
-				<div class="portal-layout-content">
-					<@sz.metadata.resource path="LAWCONT:/analyses/maintain/home/report_shortcut" params={"$sys_calcnow":"true"} showiniframe=true/>
-				</div>
-				-->
-			</@sz.commons.widget>
-		</span>
+		<#-- 部门领导、总法律顾问、部长、总会计师   这4个角色，不用查看快捷方式-->
+		<#if (hidden==1)>
+			<span class="custom-portal-layout">
+				<@sz.commons.widget id="kjfs" title="快捷方式">
+					<div class="custom-portal-news">
+						<iframe src="${url('/meta/LAWCONT/others/show/showcontent.action?path=LAWCONT:/analyses/HZ_queryAndAny/index_report/report_shortcut&amp;$sys_calcnow=true&amp;$sys_showParamPanel=false&amp;$sys_disableCache=true')}" style="width:100%;height:100%;" frameborder="no" border="0" marginwidth="0" marginheight="0"></iframe>
+					</div>
+					<#---
+					<div class="portal-layout-content">
+						<@sz.metadata.resource path="LAWCONT:/analyses/maintain/home/report_shortcut" params={"$sys_calcnow":"true"} showiniframe=true/>
+					</div>
+					-->
+				</@sz.commons.widget>
+			</span>
+		</#if>
 		<span class="custom-portal-layout">
 			<@sz.commons.widget id="dbsx" title="待办事项"  iconCls=".sz-app-icon sz-app-icon-dialog-max">
 				<div class="custom-portal-news">
