@@ -42,6 +42,9 @@ function execute(req, res){
 		var ext = FilenameUtils.getExtension(filename);
 		var contentType = ContentTypeUtils.getContentType(ext);
 		if(ext == "doc" || ext == "docx"){
+			/**
+			 * 如果是上传，并且是草稿，那么那就直接打开，但对于范本合同，应该只读打开
+			 */
 			res.attr("downloadtype",ProtectionType.READ_ONLY);
 			res.attr("method", "downloadFormWord");
 			return "wordedit.ftl";
