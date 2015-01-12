@@ -214,13 +214,12 @@ function makecontract(req, res){
 		var myOutput = new MyByteArrayOutputStream();
 		doc.save(myOutput, SaveFormat.DOCX);
 		var filename = attachmentObj["name"];
-		var size = myOutput.size();
 		var contentType = "application/msword";
 		var inputStream = myOutput.asInputStream();
 		try {
 			println("filename:"+filename);
 			var attachment = serviceAttachments.saveDraft(citask, id, dataperiod, datahierarchies, rowKey,
-					req.formName, req.compName, filename, contentType, size, inputStream, false);
+					req.formName, req.compName, filename, contentType, inputStream.available(), inputStream, false);
 			return getAttachmentInfo(attachment);
 		}
 		finally {
@@ -635,7 +634,6 @@ function saveDraft(req, res){
 			out.close();
 		}
 		var filename = srcAttachment.getFilename();
-		var size = srcAttachment.getSize();
 		var contentType = srcAttachment.getContentType();
 		
 		/**
@@ -651,7 +649,7 @@ function saveDraft(req, res){
 		var ins = new FileInputStream(file);
 		try {
 			var attachment = serviceAttachments.saveAttachment(resid, formset, dataperiod, datahierarchies, rowKey, formName, compid, false,
-					filename, size, ins, contentType, id); 
+					filename, ins.available(), ins, contentType, id); 
 			return getAttachmentInfo(attachment);
 		}
 		finally {
@@ -772,13 +770,12 @@ function editFormSavingWord(req, res, citask){
 	filename = StringEscapeUtils.decodeURI(filename);
 	
 	var file = fileobj.file;
-	var size = file.length();
 	var contentType = ContentTypeUtils.getContentType(filename);//自动识别contentType
 	var inputStream = file.getInputStream();
 	try {
 		println("filename:"+filename);
 		var attachment = serviceAttachments.saveDraft(citask, req.id, req.period, req.datahierarchies, req.rowKey,
-				req.formName, req.compName, filename, contentType, size, inputStream, false);
+				req.formName, req.compName, filename, contentType, inputStream.available(), inputStream, false);
 		return getAttachmentInfo(attachment);
 	}
 	finally {
