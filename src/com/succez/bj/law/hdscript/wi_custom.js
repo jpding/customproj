@@ -102,19 +102,7 @@ $.extend({
 **
 ***/
 function oninitwiform($flow){
-	var buttons = [];
-	if($flow.form && ($flow.form == "STARTFORM" || $flow.form == "MAINTAIN")){
-		buttons.push("complete");
-	}else{
-		buttons.push("return");			   
-	}
-				   
-	var savebtn = $flow.getButton('save');
-	if(savebtn){
-		savebtn.setVisible(false)
-	}
-	
-	hiddenWIButtons($flow, buttons);
+	hiddenButtons($flow);
 	
 	if($flow.form && ($flow.form == "STARTFORM")){
 		var form = $flow.getForm();
@@ -130,16 +118,12 @@ function oninitwiform($flow){
 		$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(result){
 			sz.commons.CheckSaved.getInstance().setModified();
 			if(window.parent && $(window.parent.document).find("iframe").length>0){
-				var surl = sz.sys.ctx("/meta/LAWCONT/others/law.js");
-				$.getScript(surl, function(){
-					var instid = result != null ? result["instanceid"] : "";
-					var wiresid  = $flow.resid;
-					var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
-					var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
-					var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
-					sz.custom.wi.showReportDlg(url, dlgParams, {ok:function(rpt){
-					}});
-				});
+				var instid = result != null ? result["instanceid"] : "";
+				var wiresid  = $flow.resid;
+				var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
+				var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
+				var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
+				sz.law.showReportDlg(url, dlgParams);
 			}
 		});
 	}
@@ -151,15 +135,32 @@ function oninitwiform($flow){
 		var form = $flow.getForm().getCurrentForm();
 		sz.ci.custom.uploadattachment.refactorAllAttachmentClick(form);
 	}
-	
-	/*
-	if(sz.utils.browser.msielt10){
-		$(".sz-prst-form").find("a").attr("href","#");
-	}*/
 				   
 	if (typeof(window._hzinitformcallback) == "function"){
 		window._hzinitformcallback($flow)		   
 	}
+}
+
+function hiddenButtons($flow){
+	var buttons = [];
+	if($flow.form && ($flow.form == "STARTFORM" || $flow.form == "MAINTAIN")){
+		buttons.push("complete");
+	}else{
+		buttons.push("return");			   
+	}
+	
+	buttons.push("save");
+	/**
+	 * 在回退后的界面，点击返回按钮，导致界面死掉，原因是该界面是从iframe打开的，并且也不需要回退，故隐藏
+	 */
+	if($flow._getBaseParams){
+		var params = $flow._getBaseParams();
+		if(params && params["instanceid"] && params["taskid"]){
+			buttons.push("return");
+		}
+	}
+	
+	hiddenWIButtons($flow, buttons);
 }
 
 /**
@@ -178,8 +179,9 @@ function oninitwiquery($flow){
 
 function hiddenWIButtons($flow, buttons){
 	$.each(buttons, function(){
-		if($flow.getButton(this)){
-          $flow.getButton(this).setVisible(false);
+		var btn = $flow.getButton(this); 
+		if(btn){
+			btn.setVisible(false);
      	}	
 	})
 }
