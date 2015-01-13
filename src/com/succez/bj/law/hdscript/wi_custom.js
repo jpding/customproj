@@ -104,10 +104,14 @@ $.extend({
 function oninitwiform($flow){
 	var buttons = [];
 	if($flow.form && ($flow.form == "STARTFORM" || $flow.form == "MAINTAIN")){
-		buttons.push('save');
 		buttons.push("complete");
 	}else{
 		buttons.push("return");			   
+	}
+				   
+	var savebtn = $flow.getButton('save');
+	if(savebtn){
+		savebtn.setVisible(false)
 	}
 	
 	hiddenWIButtons($flow, buttons);
@@ -213,7 +217,7 @@ function hiddenWIButtons($flow, buttons){
 	/**
 	 *	范本引入
 	 */
-	upload.uploadAndEditContractByModel = function($form, compid,callback) {
+	upload.uploadAndEditContractByModel = function($form, compid,callback,noNeedEdit) {
 		var compObj = $form.getComponent(compid);
 		var val = compObj.getAttachmentValue();
 		if (val != null){
@@ -246,7 +250,10 @@ function hiddenWIButtons($flow, buttons){
 			success		      : function(info) {
 				var newInfo = $form.getFormData().getAttachment(compid);
 				compObj.setAttachmentValue(newInfo);
-				upload.editAttachmentAsDoc($form, compid,callback);
+				/*在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit*/
+				if(!noNeedEdit){
+					upload.editAttachmentAsDoc($form, compid,callback);
+				}
 			}
 		};
 	
@@ -378,7 +385,7 @@ function hiddenWIButtons($flow, buttons){
 	 *   2.如果存在合同，那么最开始应该从合同表单里面取出，在存储的草稿中
 	 *   3.如果存在合同，并且在草稿中，那么就从草稿中重新取出合同
 	 */
-	upload.makeTemplateContract = function($form, compid, callback){
+	upload.makeTemplateContract = function($form, compid, callback, noNeedEdit){
 		var compObj = $form.getComponent(compid);
 		var attachmentVal = compObj.getAttachmentValue();
 		if (attachmentVal != null){
@@ -394,7 +401,7 @@ function hiddenWIButtons($flow, buttons){
 			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
 			$.post(url, data, function(info){
 				compObj.setAttachmentValue(info);
-				upload.editAttachmentAsDoc($form, compid,callback);
+			    upload.editAttachmentAsDoc($form, compid,callback);
 			});
 		}else{
 			/**
