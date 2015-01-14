@@ -551,7 +551,15 @@ function downloadFormWord(req, res){
 			var citask = serviceAttachments.getCITask(resid);
 			downloadDraftAttachment(req, res, citask, id);
 		}else{
-			
+			/**
+			 * 下载历史表中的附件
+			 */
+			var myOut = res.getOutputStream();
+			try{
+				getWiAttachment(req, myOut);
+			}finally{
+				myOut.close();
+			}
 		}
 	}else{
 		var citask = serviceAttachments.getCITask(resid);
@@ -1331,4 +1339,34 @@ function log2(method, map){
 		result.push(key+":"+map[key]);
 	}
 	return result.join(";");
+}
+
+var queryAttach   = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilQueryAttachments);
+var attachContent = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilAttachmentContent);
+
+/**
+ * 返回工作流中的附件，拷贝自showfile.js两边要保持一致
+ * @param {} req
+ * @param {} out
+ */
+function getWiAttachment(req, out){
+	queryAttach.reset();
+	queryAttach.setAttachementId(req.id);
+	var attach = queryAttach.singleResult();
+	if (attach == null) {
+		throw new Error("no found!");
+	}
+//	String userAgent = request.getHeader("USER-AGENT");
+//	response.setHeader("Content-Disposition",
+//			"attachment;filename=" + StringEscapeUtils.escapeDownloadFileName(attach.getName(), userAgent));
+	attachContent.reset();
+	attachContent.setAttachment(attach);
+	var content = attachContent.getContent();
+	try {
+		IOUtils.copy(content, out);
+		return attach.getName();
+	}
+	finally {
+		content.close();
+	}
 }

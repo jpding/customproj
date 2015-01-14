@@ -214,6 +214,7 @@ function hiddenWIButtons($flow, buttons){
  	var upload = sz.sys.namespace("sz.ci.custom.uploadattachment");
  	
  	upload.WORD_URL = "/meta/LAWCONT/others/word/wordedit.action";
+ 	upload.SHOWFILE = "/meta/LAWCONT/others/word/showfile.action";
 	
 	/**
 	 *	范本引入
@@ -408,7 +409,8 @@ function hiddenWIButtons($flow, buttons){
 			});
 		}else{
 			/**
-			 * 1.从范本里面取出合同
+			 * 1.从范本里面取出合同，目前打开合同，就会自动生成，这里就不用在生成合同
+			 * TODO
 			 */
 			
 		}
@@ -451,7 +453,7 @@ function hiddenWIButtons($flow, buttons){
 				var params = url.substring(idx+1);
 				var resid = sz.utils.getParameterOfUrl("resid", params);
 				params += "&path="+resid;
-				var openUrl = sz.sys.ctx("/meta/LAWCONT/others/word/showfile.action?")+params;
+				var openUrl = sz.sys.ctx(upload.SHOWFILE)+params;
 				window.open(openUrl);
 			}
 			/**
@@ -577,3 +579,19 @@ function hiddenWIButtons($flow, buttons){
 	 */
 	sz.law = upload;
 })(jQuery)
+
+/**
+ * TODO 待郭波提供查看历史审批审批的扩展点
+ */
+var his = $(".sz-wi-wihistory");
+if(his.length>0){
+	his.find("a[href^='/wiapi']").each(function(i,v){
+		var obj = $(this);
+		/**
+		 * wiapi/attachment?id=137602
+		 */
+		var oldUrl = obj.attr("href"); 
+		var url = sz.sys.ctx(sz.law.SHOWFILE+"?id="+sz.utils.getParameterOfUrl("id",oldUrl));
+		obj.attr("href", url);
+	});
+}

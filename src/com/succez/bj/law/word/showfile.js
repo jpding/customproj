@@ -4,6 +4,8 @@ var serviceAttachments = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.CIServiceA
 var dataPackageUtil    = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.datapackage.DataPackageUtil);
 var mgr = BeanGetter.getBean(com.succez.commons.jdbc.ConnectionFactoryManager);
 var sf  = BeanGetter.getBean(com.succez.commons.jdbc.sql.SQLFactory);
+var queryAttach   = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilQueryAttachments);
+var attachContent = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilAttachmentContent);
 
 var MyByteArrayOutputStream = com.succez.commons.util.io.MyByteArrayOutputStream;
 var MyByteArrayInputStream  = com.succez.commons.util.io.MyByteArrayInputStream;
@@ -22,6 +24,8 @@ var URLEncoder = java.net.URLEncoder;
 
 /**
  * 在线显示表单、事实表中附件，支持word、pdf、图片等
+ * 
+ * 2015-1-14 添加在审批意见中直接在线打开内容的功能，审批意见中的附件下载，见ActionWIApi/attachements
  */
 function execute(req, res){
 	var myOut = new MyByteArrayOutputStream();
@@ -30,10 +34,17 @@ function execute(req, res){
 		var id = req.id;
 		var resid = req.path;
 		if(StringUtils.isNotBlank(id)){
-			var citask = serviceAttachments.getCITask(resid);
-			var attachmentObj = {};
-			getContractInputStreamByDraft(citask, id, myOut, attachmentObj);
-			filename = attachmentObj.name;
+			/**
+			 * id不为空，有可能是工作流中的附件，工作流中的附件只有一个id，并且没有其他参数
+			 */
+			if(StringUtils.isNotBlank(resid)){
+				var citask = serviceAttachments.getCITask(resid);
+				var attachmentObj = {};
+				getContractInputStreamByDraft(citask, id, myOut, attachmentObj);
+				filename = attachmentObj.name;
+			}else{
+				filename = getWiAttachment(req, myOut);
+			}
 		}else{
 			var attachmentInf = getAttachment(req, myOut);
 			filename = attachmentInf.getFilename();
@@ -94,11 +105,30 @@ function showWord(res, attachment){
 }
 
 /**
- * 返回草稿的值，例如用户上传后，想直接预览，这样应该从草稿中获取
+ * 返回工作流中的附件
  * @param {} req
  * @param {} out
  */
-function getDraftAttachment(req, out){
+function getWiAttachment(req, out){
+	queryAttach.reset();
+	queryAttach.setAttachementId(req.id);
+	var attach = queryAttach.singleResult();
+	if (attach == null) {
+		throw new Error("no found!");
+	}
+//	String userAgent = request.getHeader("USER-AGENT");
+//	response.setHeader("Content-Disposition",
+//			"attachment;filename=" + StringEscapeUtils.escapeDownloadFileName(attach.getName(), userAgent));
+	attachContent.reset();
+	attachContent.setAttachment(attach);
+	var content = attachContent.getContent();
+	try {
+		IOUtils.copy(content, out);
+		return attach.getName();
+	}
+	finally {
+		content.close();
+	}
 }
 
 /**
