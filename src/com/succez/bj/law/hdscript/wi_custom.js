@@ -60,12 +60,6 @@ $.extend({
 								}
 							}});
 						}else{
-							if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
-								if(sz.custom && sz.custom.wi && sz.custom.wi.on_callback){
-									sz.commons.CheckSaved.getInstance().setModified();
-									sz.custom.wi.saveFormCallback();
-								}
-							}	
 							$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
 								var funcname = "submit_"+formName;
 								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
@@ -114,7 +108,7 @@ function oninitwiform($flow){
 		var formName = form.getCurrentFormName();
 		
 		$flow.addButton({id:'wisubmit',caption:"送审",icon:"sz-app-icon-run",next:"cancel",click:function(event){
-			$.checkSubmitAudit($flow, formName, false);				
+			$.checkSubmitAudit($flow, formName, false);	debugger;			
 		}});
 		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
 			$.checkSubmitAudit($flow, formName, true);
@@ -127,7 +121,7 @@ function oninitwiform($flow){
 				var wiresid  = $flow.resid;
 				var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
 				var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
-				var url = "/meta/LAWCONT/analyses/HZ_queryAndAny/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
+				var url = "/meta/LAWCONT/analyses/maintain/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
 				sz.law.showReportDlg(url, dlgParams);
 			}
 		});
@@ -247,7 +241,8 @@ function hiddenWIButtons($flow, buttons){
 				taskid			     : "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/HTFBGL",
 				formset			     : "default",
 				dataperiod			 : "",
-				datahierarchies		: "uid="+uid,
+				datahierarchies		: "",
+				uid : uid,
 				rowkey : "",
 				dwTable			     : "FM_TPL_INFO",
 				fileContentField	: "ATTACHMENT1",
@@ -398,6 +393,7 @@ function hiddenWIButtons($flow, buttons){
 		if (attachmentVal != null){
 			/**
 			 * 2、3 从表单或者草稿中取出合同
+			 * TODO
 			 */
 			var data = {
 				formdatas:JSON.stringify(upload.getFillFormDatas($form)),

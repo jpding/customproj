@@ -525,6 +525,8 @@ function checkSaveWord(fileObj){
  * 
  * TODO 在留痕打开时，要设置当前word的操作人，这样便于是哪个用户留的痕迹，在保存的时候，要判断word的操作人
  * 是否和当前登录用户一致，避免用户在客户端直接修改当前的word的操作用户
+ * 
+ * 2015-1-4 加入可以下载审批历史记录中的，如果只有id一个参数，那么就认为是直接下载审批历史表中的附件
  * @param {} req
  * @param {} res
  * @mapping
@@ -539,15 +541,20 @@ function downloadFormWord(req, res){
 	var dwTable = req.dwTable;
 	var fileContentField = req.fileContentField;
 	var fileNameField    = req.fileNameField;
-	var citask = serviceAttachments.getCITask(resid);
 	println("=========downloadFormWord==="+id+";resid:"+resid);
 	if(ISDEBUG){
 		log("downloadFormWord", {"cipath":resid,"dwTable":dwTable,"fileContentField":fileContentField, "datahierarchies":datahierarchies});
 	}
 	
 	if(StringUtils.isNotBlank(id)){
-		downloadDraftAttachment(req, res, citask, id);
+		if(StringUtils.isNotBlank(resid)){
+			var citask = serviceAttachments.getCITask(resid);
+			downloadDraftAttachment(req, res, citask, id);
+		}else{
+			
+		}
 	}else{
+		var citask = serviceAttachments.getCITask(resid);
 		datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
 		var myOut = new MyByteArrayOutputStream();
 		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
@@ -627,6 +634,7 @@ function saveDraft(req, res){
 	var srcfileContentField = ciattachment["fileContentField"];
 	var srcfileNameField = ciattachment["fileNameField"];
 	var srcdwtable = ciattachment["dwTable"];
+	var srcuid     = ciattachment["uid"];
 
 	var citask = serviceAttachments.getCITask(srctaskid);
 	var file = tempFileService.createTempFile("doc");
@@ -634,6 +642,9 @@ function saveDraft(req, res){
 		var srcAttachment = null;
 		var out = new FileOutputStream(file);
 		try {
+			if(!srcdatahierarchies){
+				srcdatahierarchies = getDataHierarchiesByUid(srctaskid, srcdwtable, srcuid);
+			}
 			srcAttachment = serviceAttachments.getAttachment(citask, srcdataperiod, srcdatahierarchies, srcrowKey, srcdwtable,
 					srcfileContentField, srcfileNameField, out);
 		}
@@ -666,6 +677,25 @@ function saveDraft(req, res){
 	finally {
 		FileUtils.remove(file);
 	}
+}
+
+/**
+ * 目前只有合同用到，故直接写死
+ * @param {} taskPath
+ * @param {} dwTable
+ * @param {} uid
+ */
+function getDataHierarchiesByUid(taskPath, dwTable, uid){
+	var brow = sz.ci.getDataBrowser(taskPath);
+	brow.addDWTable(dwTable);
+	brow.addField("org", "org");
+	brow.addFilter(dwTable+".uid='"+uid+"'");
+	var q = brow.query();
+	if(!q || q.size()==0){
+		return "";
+	}
+	var org = q.get(0)[0];
+	return "ORG="+org+"&"+"UID="+uid;
 }
 
 /**
