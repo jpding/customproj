@@ -104,6 +104,11 @@ $.extend({
 function oninitwiform($flow){
 	hiddenButtons($flow);
 	
+	/**
+	 * 忽略修改未保存提示，在IE8下打开一个合同表单后，每次切换，都有提示，特别繁琐。
+	 */
+	sz.commons.CheckSaved.getInstance().setIgnore(true);
+	
 	if($flow.form && ($flow.form == "STARTFORM")){
 		var form = $flow.getForm();
 		var formName = form.getCurrentFormName();
@@ -232,18 +237,18 @@ function hiddenWIButtons($flow, buttons){
 		
 		var uid = $form.getComponent("fb_uid").val();
 		var data = {
-			resid		        : 18907146,
+			resid		        : 'LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO',
 			dataperiod		  : "",
 			datahierarchies	: "",
 			formName		    : $form.getFormName(),
 			compid		      : compid,
 			compress		    : false,
 			ciattachment		: {
-				taskid			     : 26607626,
+				taskid			     : "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/HTFBGL",
 				formset			     : "default",
 				dataperiod			 : "",
-				datahierarchies		: "",
-				rowkey : uid,
+				datahierarchies		: "uid="+uid,
+				rowkey : "",
 				dwTable			     : "FM_TPL_INFO",
 				fileContentField	: "ATTACHMENT1",
 				fileNameField			: "FN0"
