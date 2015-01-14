@@ -445,7 +445,14 @@ function saveWordToDb(args, file){
 	backupWord(dbTableName, args.wordfield, args.keyfield, args.keys);
 	
 	var ins = file.getInputStream();
+	/**
+	 * 2015-1-14 在WIN7下，非管理员点击保存，这样上传的附件是空，这样会导致覆盖以前的附件，故在这里怕判断，如果是0字节的文件，
+	 *   不让存储
+	 */
 	try{
+		if(ins == null || ins.available()==0){
+			throw new Error("word文件为空，请用管理员打开IE浏览器，然后重新编辑word后在保存!");
+		}
 		ds.update(updateSql,[ins, args.keys]);
 	}finally{
 		ins.close();
