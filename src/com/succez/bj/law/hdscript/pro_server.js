@@ -31,12 +31,7 @@ function getUserByRole(dptid, roleName) {
 				result.push(sib.id);
 			}
 		}
-		var orgObj = sz.security.getOrg(parentOrgId);
-		if(orgObj == null){
-			break;
-		}
-		var pOrg = orgObj.parent;
-		print("pOrg:"+pOrg+"-----id:"+pOrg.id);
+		var pOrg = sz.security.getOrg(parentOrgId).parent;
 		parentOrgId = pOrg ? pOrg.id : null; 
 	}
 	
@@ -104,6 +99,7 @@ function listUsers(org){
 	}
 	return result;
 }
+
 /**
 *  在合同生效之后，更新合同状态为审批通过
 */
@@ -111,4 +107,20 @@ function update_state_to_30(uid,tableName){
 	var ds = sz.db.getDefaultDataSource();
 	print("update state_ "+tableName+" uid = "+uid);
 	ds.update("update "+tableName+" set STATUS_ ='30' where UID=?", uid);
+}
+
+function onAssigneeFilter_szrsh($flow,datas){
+	print("onAssigneeFilter_szrsh");
+	var userid = sz.security.getCurrentUser().id;
+	var result = getUserByStarter(userid,"室主任").split(",");
+	print(result);
+	return result;
+}
+
+function onAssigneeFilter_bmldsh($flow,datas){
+	print("onAssigneeFilter_bmldsh");
+	var userid = sz.security.getCurrentUser().id;
+	var result = getUserByStarter(userid,"部门领导").split(",");
+	print(result);
+	return result;
 }
