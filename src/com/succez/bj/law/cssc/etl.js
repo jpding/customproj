@@ -11,7 +11,7 @@ var StringUtils  = com.succez.commons.util.StringUtils;
  */
 var DS_NAME     = "SQCBNY";
 var FUNC_TABLE  = "V_Function";
-var INPUT_TABLE = "FACT_SHUCAI_D";
+var INPUT_TABLE = "FACT_SHUCAI_XS";
 var OUTPUT_TABLE = "ETL_UNIT_EXPZZ";
 var FPG_FIELD = "FPG";
 /**
@@ -25,12 +25,17 @@ var LOG_TABLE = "";
  * @param {} args
  */
 function main(args){
-	var curtime = args.lasttime;
-	//var curtime = '20141117 13:00:00';
+	//var curtime = args.lasttime;
+	var curtime = args.curtime;
+	//var curtime = '20141117';
+	curtime = getLastTime(curtime);
 	
 	var rq = tostr(curtime, "yyyymmdd");
-	//var xs = tostr(curtime, "H");
-	startEtl(DS_NAME, rq, null, "A","T");
+	var xs = tostr(curtime, "H");
+	
+	throw new Error(rq + " xx " + xs);
+	
+	startEtl(DS_NAME, rq, xs, "A","T");
 	//testLoadData();
 }
 
@@ -40,7 +45,7 @@ function startEtl(dsName, rq, xs, uType, pmType){
 	if(pmType == 'T'){
 		fields.push(FPG_FIELD);
 	}
-	var data = loadData(dsName, INPUT_TABLE, fields, {BBQ:rq,PMType:pmType});
+	var data = loadData(dsName, INPUT_TABLE, fields, {BBQ:rq,XS:xs,PMType:pmType});
 	if(isNullData(data)){
 		return ;
 	}
@@ -50,6 +55,7 @@ function startEtl(dsName, rq, xs, uType, pmType){
 	if(pmType == 'T'){
 		resultFields.push(FPG_FIELD);
 	}
+	resultFields.push("FNType");
 	saveData(dsName, "ETL_UNIT_EXPZZ", resultFields, result);
 }
 
@@ -174,7 +180,7 @@ function saveData(dsName, table, fieldNames, data){
  * [['区域','介质','公式'],...]
  */
 function getCalcExps(uType, pmType){
-	return loadData(DS_NAME, FUNC_TABLE, ["EUCode", "DCode", "FNContent", "UnitType", "PMType"], {"UnitType":uType, "PMType":pmType});
+	return loadData(DS_NAME, FUNC_TABLE, ["EUCode", "DCode", "FNContent", "UnitType", "PMType","FNType"], {"UnitType":uType, "PMType":pmType});
 }
 
 /**
@@ -265,6 +271,8 @@ function calcExps2(result, srcData, expZzs, constData){
 		if(constData){
 			row.push(constData);
 		}
+		row.push(expZzs[i][5]);
+		
 		result.push(row);
 	}
 	return result;
@@ -307,6 +315,14 @@ ExpContext.prototype.getVar = function(name){
 		return new ExpVarObject(name, ExpReturnTypes.FLOAT_TYPE, 0);
 	}
 	return null;
+}
+
+/**
+ * 通过数据库的方法求上一小时，由于BI3.1.1的规则改变了，而表达式又不支持求上一小时，故采用数据库自己的函数求上一小时
+ */
+function getLastTime(curtime){
+	var ds = sz.db.getDefaultDataSource();
+	return ds.select("select convert(varchar,dateadd(hh,-1,  ?),120)", [curtime])[0][0];
 }
 
 function testExp(){
