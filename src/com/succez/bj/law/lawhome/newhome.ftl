@@ -117,7 +117,7 @@
 <div class="custom-portal-scroll">
 	<div class="custom-portal-container">
 		<#-- 部门领导、总法律顾问、部长、总会计师   这4个角色，不用查看快捷方式-->
-		<#if (hidden==1)>
+		<#if (hidden==0)>
 			<span class="custom-portal-layout">
 				<@sz.commons.widget id="kjfs" title="快捷方式">
 					<div class="custom-portal-news">
