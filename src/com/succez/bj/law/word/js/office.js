@@ -308,6 +308,16 @@
 		
 		this.unLock();
 	}
+	
+	/**
+	 * 判断文档判断了没有
+	 */
+	WSOffice.prototype.isDirty = function(){
+		if(this.aodControl){
+			return this.aodControl.IsDirty; 
+		}
+		return false;
+	}
 
 	/**
 	 * 插件打开或者保存时必须是http的全路径，即“http://xxxx/xxx”，该方法提供获取“http://xxxx”
