@@ -26,6 +26,9 @@ function onAfterReportCalc(args) {
     var startTimeCol = getColIndex(COL_STARTTIME)-1;
     var endTimeCol   = getColIndex(COL_ENDTIME)-1;
     
+    var sjq = params.get("SJQ");
+    var sjz = params.get("SJZ");
+    
     var dataStartCol = startCol+1;
     var rows = table.getRows();
     for(var i=ROW_START, len=table.getRowCount(); i<len; i++ ){
@@ -39,21 +42,25 @@ function onAfterReportCalc(args) {
     	var vv = cell.value;
     	if(vv == '计划'){
     		if(i%2==0){
-    			var startCell = getStartCell(table, cell, dataStartCol);
-    			var endCell   = getEndCell(table, cell, dataStartCol);
+    			var startCell = getStartCell2(table, cell, dataStartCol, sjq, sjz);
+    			var endCell   = getEndCell2(table, cell, dataStartCol, sjq, sjz);
     			if(startCell == null || endCell == null){
     				continue;
     			}
+    			println("计划：startCell:"+startCell.getName()+";value="+startCell.getValue());
+    			println("计划：endCell:"+endCell.getName()+";value="+endCell.getValue());
     			drawPlanLine(table, startCell, endCell, dataStartCol);
     			drawMileStone(table, startCell, endCell, dataStartCol, startTimeCol, endTimeCol, startCol);
     		}
     	}else if(vv == '执行'){
     		if(i%2==0){
-    			var startCell = getStartCell(table, cell, dataStartCol);
-    			var endCell   = getEndCell(table, cell, dataStartCol);
+    			var startCell = getStartCell2(table, cell, dataStartCol, sjq, sjz);
+    			var endCell   = getEndCell2(table, cell, dataStartCol, sjq, sjz);
     			if(startCell == null || endCell == null){
     				continue;
     			}
+    			println("执行：startCell:"+startCell.getName()+";value="+startCell.getValue());
+    			println("执行：endCell:"+endCell.getName()+";value="+endCell.getValue());
     			drawPlanLine2(table, startCell, endCell, dataStartCol);
     			drawMileStone(table, startCell, endCell, dataStartCol, startTimeCol, endTimeCol, startCol);
     		}
@@ -102,18 +109,127 @@ function getStartCol(table){
 	return -1;
 }
 
-function getStartCell(table, cell, dataStartCol){
+function getStartTimeValue(table, cell){
 	var startcol = getColIndex(COL_STARTTIME) - 1;
 	var cl = table.getCell(cell.row, startcol);
-	var vv = cl.value;
+	return cl.value;
+}
+
+function getStartTimeCell(table, cell, dataStartCol){
+	var vv = getStartTimeValue(table, cell);
 	return getConditionCell(table, cell, vv, dataStartCol);
 }
 
-function getEndCell(table, cell, dataStartCol){
+function getEndTimeCell(table, cell, dataStartCol){
+	var vv = getEndTimeCellValue(table, cell);
+	return getConditionCell(table, cell, vv, dataStartCol);
+}
+
+function getEndTimeCellValue(table, cell){
 	var endcol = getColIndex(COL_ENDTIME) - 1;
 	var cl = table.getCell(cell.row, endcol);
-	var vv = cl.value;
-	return getConditionCell(table, cell, vv, dataStartCol);
+	return cl.value;
+}
+
+/**
+ * 2015-1-15 划线不需要开始节点，第一个关键开始节点
+ * @param {} table
+ * @param {} cell
+ * @param {} dataStartCol
+ * @return {}
+ */
+function getStartCell2(table, cell, dataStartCol, sjq, sjz){
+	var startcol = getColIndex(COL_STARTTIME) - 1;
+	var currV = "";
+	for(var i=startcol+2; i<dataStartCol-2; ){
+		var cl = table.getCell(cell.row, i);
+		if(cl.value){
+			currV = cl.value;
+			break;
+		}
+		i = i + 2;
+	}
+	println("startcell2:"+currV);
+	var startCell = getConditionCell(table, cell, currV, dataStartCol);
+	/**
+	 * 判断开始时间和所选时间段，是不是有交集
+	 */
+	if(startCell == null){
+		var q = getStartTimeValue(table, cell);
+		var z = getEndTimeCellValue(table, cell);
+		println("q:"+q+";z:"+z);
+		if(!q || !z){
+			return startCell;
+		}
+		
+		/**
+		 * 如果包含起止，那就按关键点显示
+		 */
+		if((q>=od(sjq,"m=1") && z<=od(sjz,"m=12")) || (z<od(sjq,"m=1")) || (q>od(sjz,"m=12"))){
+			return startCell;
+		}
+		
+		/**
+		 * 处理交叉的情况
+		 */
+		if(q<od(sjq,"m=1") && z>od(sjq,"m=1")){
+			startCell = getConditionCell(table, cell, od(sjq,"m=1"), dataStartCol);
+			println("startCell:"+startCell);
+			return startCell;
+		}
+		
+		if(q>od(sjq,"m=1")){
+			return getConditionCell(table, cell, q, dataStartCol);
+		}
+	}
+	return startCell;
+}
+
+/**
+ * 同上，返回最后一个关键节点
+ * 从COL_ENDTIME往后找，一致找到dataStartCol，找到最后一个有值的，就是结束
+ * @param {} table
+ * @param {} cell
+ * @param {} dataStartCol
+ */
+function getEndCell2(table, cell, dataStartCol, sjq, sjz){
+	var endcol = getColIndex(COL_ENDTIME) - 1;
+	var currV = "";
+	for(var i=endcol+1; i<dataStartCol-2; ){
+		var cell = table.getCell(cell.row, i);
+		if(cell.value){
+			currV = cell.value;
+		}
+		i = i + 2;
+	}
+	println("endcell2:"+currV);
+	var endCell = getConditionCell(table, cell, currV, dataStartCol);
+	if(endCell == null){
+		var q = getStartTimeValue(table, cell);
+		var z = getEndTimeCellValue(table, cell);
+		if(!q || !z){
+			return endCell;
+		}
+		
+		/**
+		 * 如果包含起止，那就按关键点显示
+		 */
+		if((q>=od(sjq,"m=1") && z<=od(sjz,"m=12")) || (z<od(sjq,"m=1")) || (q>od(sjz,"m=12"))){
+			return endCell;
+		}
+		
+		/**
+		 * 处理交叉的情况
+		 */
+		if(z>od(sjz,"m=12")){
+			return getConditionCell(table, cell, od(sjz,"m=12"), dataStartCol);
+		}
+		
+		if(z<od(sjz,"m=12")){
+			return getConditionCell(table, cell, z, dataStartCol);
+		}
+	}
+	return endCell;
 }
 
 function drawNoBorder(table, startCell, startCol){
@@ -147,8 +263,8 @@ function drawMileStone(table, startCell, endCell, dataStartCol, startTimeCol, en
 	var startTime = table.getCell(startCell.row, startTimeCol);
 	var endTime = table.getCell(startCell.row, endTimeCol);
 	var cells = [];
-	cells.push(startTime);
-	cells.push(endTime);
+//	cells.push(startTime);
+//	cells.push(endTime);
 	for(var i=endTimeCol+1; i<startCol; ){
 		var celltime = table.getCell(startCell.row, i);
 		cells.push(celltime);
@@ -181,7 +297,7 @@ function drawMileStone(table, startCell, endCell, dataStartCol, startTimeCol, en
 			continue;
 		}
 		
-		var rq = cells[i+2].value;
+		var rq = cells[i].value;
 		if(rq == null || rq.length == 0){
 			continue;
 		}
