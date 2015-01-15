@@ -61,18 +61,19 @@ $.extend({
 							}});
 						}else{
 							$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
-								var funcname = "submit_"+formName;
+								var funcname = "submit_"+formName;debugger;
 								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
 									if(sz.custom && sz.custom.wi && sz.custom.wi.on_submitcallback){
 										sz.commons.CheckSaved.getInstance().setModified();
 										sz.custom.wi.submitFormCallback();
 									}
-								}	
-								if($.wicallbacks && $.wicallbacks["submit_"+formName]){
-									$.wicallbacks[funcname](result);
-								}else{
-									sz.commons.CheckSaved.getInstance().setModified();
-									window.location.reload();
+								}else{	
+									if($.wicallbacks && $.wicallbacks["submit_"+formName]){
+										$.wicallbacks[funcname](result);
+									}else{
+										sz.commons.CheckSaved.getInstance().setModified();
+										window.location.reload();
+									}
 								}
 							}});
 						}
@@ -453,7 +454,7 @@ function hiddenWIButtons($flow, buttons){
 				var params = url.substring(idx+1);
 				var resid = sz.utils.getParameterOfUrl("resid", params);
 				params += "&path="+resid;
-				var openUrl = sz.sys.ctx(upload.SHOWFILE)+params;
+				var openUrl = sz.sys.ctx(upload.SHOWFILE+"?")+params;
 				window.open(openUrl);
 			}
 			/**
