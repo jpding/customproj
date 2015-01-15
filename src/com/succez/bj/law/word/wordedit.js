@@ -526,7 +526,10 @@ function checkSaveWord(fileObj){
  * TODO 在留痕打开时，要设置当前word的操作人，这样便于是哪个用户留的痕迹，在保存的时候，要判断word的操作人
  * 是否和当前登录用户一致，避免用户在客户端直接修改当前的word的操作用户
  * 
- * 2015-1-4 加入可以下载审批历史记录中的，如果只有id一个参数，那么就认为是直接下载审批历史表中的附件
+ * 2015-1-14 加入可以下载审批历史记录中的，如果只有id一个参数，那么就认为是直接下载审批历史表中的附件
+ * 
+ * 2015-1-15 可以直接下载Excel附件，由于word控件不支持对Excel处理，故直接下载
+ * 
  * @param {} req
  * @param {} res
  * @mapping
@@ -568,6 +571,7 @@ function downloadFormWord(req, res){
 		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
 					dwTable, fileContentField, fileNameField);
 		var bins = myOut.asInputStream();
+		
 		/**
 		 * 下载已经存储到表单数据库中的文档：
 		 * 1.该表单已经提交审批了， 留痕打开
@@ -582,27 +586,7 @@ function downloadFormWord(req, res){
 		if(state == "10"){
 			downloadType = -1;
 		}else if(state=="20"){
-			downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
-			/**
-			 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
-			 * 只是需要修改的附件，才需要锁定，例如：合同文本，规章制度文本，而除此之外的文档，不需要
-			 * 冲突，大家都能看
-			 * TODO
-			 * citaskPath, uid, formName, wordField, sessionid)
-			 */
-			if(needCheckConflict(resid, fileContentField)){
-				var uidField = citask.getDetailGrainDef().getIDField();
-				var uid = getDetailIdValue(datahierarchies, uidField);
-				println("needLock:"+uid);
-				var sessionid = req.getSession().getId();
-				var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
-				if(lockObj != null){
-					if(ISDEBUG){
-						println("lockObj:"+lockObj.user+","+lockObj.createtime+","+lockObj.id);
-					}
-					downloadType = ProtectionType.READ_ONLY;
-				}
-			}
+			downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
 		} else if(state == "-1"){
 			/**
 			 * 不存在状态字段
@@ -613,6 +597,32 @@ function downloadFormWord(req, res){
 		writeWord(bins, res, downloadType, req.version == "Word.Application.11");			
 	}
 }
+
+function getDocConflictDownloadType(req,citask, resid, dwTable, fileContentField, datahierarchies){
+	var downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
+	/**
+	 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
+	 * 只是需要修改的附件，才需要锁定，例如：合同文本，规章制度文本，而除此之外的文档，不需要
+	 * 冲突，大家都能看
+	 * TODO
+	 * citaskPath, uid, formName, wordField, sessionid)
+	 */
+	if(needCheckConflict(resid, fileContentField)){
+		var uidField = citask.getDetailGrainDef().getIDField();
+		var uid = getDetailIdValue(datahierarchies, uidField);
+		println("needLock:"+uid);
+		var sessionid = req.getSession().getId();
+		var lockObj = checkLock(resid, uid, dwTable, fileContentField, sessionid);
+		if(lockObj != null){
+			if(ISDEBUG){
+				println("lockObj:"+lockObj.user+","+lockObj.createtime+","+lockObj.id);
+			}
+			downloadType = ProtectionType.READ_ONLY;
+		}
+	}
+	return downloadType;
+}
+
 
 /**
  * 把word附件中的内容存储到草稿库中，主要用于用户选择范本时，要往范本里面记录一个标识信息，便于
@@ -891,24 +901,29 @@ function getDetailIdValue(keys, idField){
  * @param {} id
  */
 function downloadDraftAttachment(req, res, task, id){
-	var input = getContractInputStreamByDraft(task,id);
+	var attachObj = {};
+	var input = getContractInputStreamByDraft(task,id, attachObj);
 	try {
 		/**
 		 * 如果是范本合同  ProtectionType.ALLOW_ONLY_FORM_FIELDS，那么以窗体只读的方式打开
 		 */
 		var out = res.getOutputStream();
 		try{
-			var downloadType = -1;
-			var doc = new Document(input);
-			if(isTemplateContract(doc)){
-				/**
-				 * 采用限制编辑实现，不在使用窗体的方式实现，原因是使用窗体，不好控制word格式
-				 */
-				downloadType = ProtectionType.READ_ONLY;
-				//downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
+			if(StringUtils.equalsIgnoreCase(attachObj["contentType"], "xls") || StringUtils.equalsIgnoreCase(attachObj["contentType"], "xlsx")){
+				IOUtils.copy(input, out);
+			}else{
+				var downloadType = -1;
+				var doc = new Document(input);
+				if(isTemplateContract(doc)){
+					/**
+					 * 采用限制编辑实现，不在使用窗体的方式实现，原因是使用窗体，不好控制word格式
+					 */
+					downloadType = ProtectionType.READ_ONLY;
+					//downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
+				}
+				println("downloadDraftAttachment=======downloadType=="+downloadType);
+				writeWordByDoc(doc, out, downloadType, req.version == "Word.Application.11");
 			}
-			println("downloadDraftAttachment=======downloadType=="+downloadType);
-			writeWordByDoc(doc, out, downloadType, req.version == "Word.Application.11");
 		}finally{
 			out.close();
 		}

@@ -489,7 +489,12 @@ function hiddenWIButtons($flow, buttons){
 			row = floatarea.newRow();
 		}
 		var cicomp = row.getComponent(attachmentField);
-		cicomp.getInput().uploadFile();
+		/**
+		 * 由于上传的文件要在线打开，故在浮动表中添加附件，要监听生成link事件
+		 */
+		var fileInput = cicomp.getInput(); 
+		upload.refactorAttachmentClick(fileInput);
+		fileInput.uploadFile();
 	}
 	
 	upload.REPORTDEFAULTPARAMS = {$sys_calcnow:true, $sys_disableCache:true, $sys_showCaptionPanel:false};
