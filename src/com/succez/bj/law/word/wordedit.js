@@ -52,6 +52,7 @@ var ActionUtils = com.succez.commons.webctrls.domain.ActionUtils;
 var FunctionNames = com.succez.commons.jdbc.function.FunctionNames;
 
 var ISDEBUG = true;
+var INFO_WORD_ERROR = "fail:保存的文件为空，请用管理员权限打开IE浏览器，重新编辑在保存!";
 
 com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
 
@@ -454,9 +455,11 @@ function saveWordToDb(args, file){
 	 */
 	try{
 		if(ins == null || ins.available()==0){
-			throw new Error("word文件为空，请用管理员打开IE浏览器，然后重新编辑word后在保存!");
+			return INFO_WORD_ERROR;
 		}
 		ds.update(updateSql,[ins, args.keys]);
+		
+		return "success";
 	}finally{
 		ins.close();
 	}
@@ -829,7 +832,7 @@ function saveWordInForm(req, res){
 		/**
 		 * 审批表单界面，直接保存word，要注意非管理员打开word时，上传word文件的长度为0
 		 */
-		auditFormSavingWord(req, res, ciTask, formName, compName);
+		return auditFormSavingWord(req, res, ciTask, formName, compName);
 	}
 }
 
@@ -851,8 +854,8 @@ function editFormSavingWord(req, res, citask){
 	try {
 		println("filename:"+filename);
 		var size = inputStream.available();
-		if(ins == null || ins.available()==0){
-			throw new Error("word文件为空，请用管理员打开IE浏览器，然后重新编辑附件后在保存!");
+		if(inputStream == null || inputStream.available()==0){
+			return INFO_WORD_ERROR;
 		}
 		var attachment = serviceAttachments.saveDraft(citask, req.id, req.period, req.datahierarchies, req.rowKey,
 				req.formName, req.compName, filename, contentType, size, inputStream, false);
@@ -883,14 +886,14 @@ function auditFormSavingWord(req, res, ciTask, formName, compName){
 	var wordfield = cdbinf.getName();
 	var detailGrain = ciTask.getDetailGrainDef();
 	if(!detailGrain){
-		throw new Error(ciTask.getPath()+"未设置填报明细，暂不支持!");
+		return "fail:"+ciTask.getPath()+"未设置填报明细，暂不支持!";
 	}
 	var uid = ciTask.getDetailGrainDef().getIDField();
 	var facttable = ciTask.getDWTableInf(srcdwtable).getPath();
 	var dataHier  = URLDecoder.decode(req.datahierarchies, "utf-8");
 	var keys = getDetailIdValue(dataHier, uid);
 	if(!keys){
-		throw new Error(dataHier+"找不到填报明细的内容!填报明细字段为："+uid);
+		return "fail:" + dataHier+"找不到填报明细的内容!填报明细字段为："+uid;
 	}
 	
 	var wordfile = getUploadFile(req);
@@ -898,7 +901,7 @@ function auditFormSavingWord(req, res, ciTask, formName, compName){
 	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
 	 */
 	var params = {"facttable":facttable, "wordfield":wordfield, "keyfield":uid, "keys":keys};
-	saveWordToDb(params, wordfile.file);
+	return saveWordToDb(params, wordfile.file);
 }
 
 /**

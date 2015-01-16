@@ -126,7 +126,7 @@
 			    return "word.doc";
 		    }
 		    this.editOffice.success = function(info) {
-			    alert('save success!');
+			   
 		    }
 	    }
 	}
@@ -383,9 +383,16 @@
 			this.aodControl.HttpAddPostCurrFile("fileobj",
 					encodeURIComponent(name));
 			var result = this.aodControl.HttpPost(url);
-			if (result && this.editOffice.success) {
-				this.editOffice.success(result);
+			if(result){
+				if(result.startsWith && result.startsWith("fail")){
+					alert(result.substring(5));				
+				}
+				
+				if (this.editOffice.success) {
+					this.editOffice.success(result);
+				}
 			}
+			
 			sz.commons.Alert.show({
 						msg : sz.sys.message("sz.ci.wsoffice.save.success")
 					});
