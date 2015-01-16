@@ -13,6 +13,7 @@ var StringUtils = com.succez.commons.util.StringUtils;
 var IOUtils   = com.succez.commons.util.io.IOUtils;
 var FileUtils = com.succez.commons.util.io.FileUtils;
 var ContentTypeUtils = com.succez.commons.util.ContentTypeUtils;
+var FilenameUtils    = com.succez.commons.util.FilenameUtils;
 var CIMetaConsts = com.succez.bi.ci.meta.CIMetaConsts;
 var MyByteArrayOutputStream = com.succez.commons.util.io.MyByteArrayOutputStream;
 var MyByteArrayInputStream  = com.succez.commons.util.io.MyByteArrayInputStream;
@@ -46,6 +47,7 @@ var ShapeType = com.aspose.words.ShapeType;
 var VerticalAlignment = com.aspose.words.VerticalAlignment;
 var WrapType = com.aspose.words.WrapType;
 var SaveFormat = com.aspose.words.SaveFormat;
+var ActionUtils = com.succez.commons.webctrls.domain.ActionUtils;
 
 var FunctionNames = com.succez.commons.jdbc.function.FunctionNames;
 
@@ -112,6 +114,7 @@ function execute(req, res){
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
 	 */
 	res.attr("ignoreChromeFrame", "true");
+	res.attr("ext", "doc");
 	return "wordedit.ftl";
 }
 
@@ -145,9 +148,8 @@ function downloadword(req, res){
 	var input = java.io.BufferedInputStream(ins);
 	try{
 		
-		com.succez.commons.webctrls.domain.ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword",
-				"utf-8", null, "word.doc");
-		
+		ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword","utf-8", null, "word.doc");
+				
 		var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
 		if(req.print=="1"){
 			log("printword", params);
@@ -288,15 +290,9 @@ function writeWord(input, res, downloadtype, is2003){
  * @param {} downloadtype
  */
 function writeWordByInputStream(input, out, downloadtype, is2003){
-	//var downloadtype = NumberUtils.toInt((params.downloadtype+""), -1);
-	println("downloadtype==========:"+downloadtype);
-	//downloadtype = -1;
-//	if(downloadtype == -1){
-//		IOUtils.copy(input, out);
-//	}else{
-		var doc = new Document(input);
-		writeWordByDoc(doc, out, downloadtype, is2003);
-//	}
+	println("writeWordByInputStream:downloadtype:"+downloadtype);
+	var doc = new Document(input);
+	writeWordByDoc(doc, out, downloadtype, is2003);
 }
 
 function writeWordByDoc(doc, out, downloadtype, is2003){
@@ -554,47 +550,58 @@ function downloadFormWord(req, res){
 			var citask = serviceAttachments.getCITask(resid);
 			downloadDraftAttachment(req, res, citask, id);
 		}else{
-			/**
-			 * 下载历史表中的附件
-			 */
-			var myOut = res.getOutputStream();
-			try{
-				getWiAttachment(req, myOut);
-			}finally{
-				myOut.close();
-			}
+			downloadWIHisAttachments(req, res);
 		}
 	}else{
 		var citask = serviceAttachments.getCITask(resid);
 		datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
 		var myOut = new MyByteArrayOutputStream();
-		serviceAttachments.downloadAttachment(myOut, citask, dataperiod, datahierarchies, rowKey,
-					dwTable, fileContentField, fileNameField);
+		
+		var attachmentInf = serviceAttachments.getAttachment(citask, dataperiod,datahierarchies, rowKey,
+			dwTable, fileContentField, fileNameField, myOut);
+		var fileName = attachmentInf.getFilename();	
 		var bins = myOut.asInputStream();
 		
-		/**
-		 * 下载已经存储到表单数据库中的文档：
-		 * 1.该表单已经提交审批了， 留痕打开
-		 * 2.未提交审批，要区分自由合同和范本合同
-		 *   a.自由合同，不限制编辑
-		 *   b.范本合同，只能编辑窗体域
-		 * TODO  
-		 */
-		var downloadType = ProtectionType.READ_ONLY;
-		var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
-		println("downloadFormWord: state="+state);
-		if(state == "10"){
-			downloadType = -1;
-		}else if(state=="20"){
-			downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
-		} else if(state == "-1"){
+		var fileExt = FilenameUtils.getExtension(fileName);
+		if(StringUtils.equalsIgnoreCase(fileExt, "xls") || StringUtils.equalsIgnoreCase(fileExt, "xlsx")){
+				downloadXls(req, res, bins, null);
+		}else{		
 			/**
-			 * 不存在状态字段
+			 * 下载已经存储到表单数据库中的文档：
+			 * 1.该表单已经提交审批了， 留痕打开
+			 * 2.未提交审批，要区分自由合同和范本合同
+			 *   a.自由合同，不限制编辑
+			 *   b.范本合同，只能编辑窗体域
+			 * TODO  
 			 */
-			downloadType = ProtectionType.READ_ONLY;
+			var downloadType = ProtectionType.READ_ONLY;
+			var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
+			println("downloadFormWord: state="+state);
+			if(state == "10"){
+				downloadType = -1;
+			}else if(state=="20"){
+				downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
+			} else if(state == "-1"){
+				/**
+				 * 不存在状态字段
+				 */
+				downloadType = ProtectionType.READ_ONLY;
+			}
+			println("downloadFormWord:downloadType=="+downloadType);
+			writeWord(bins, res, downloadType, req.version == "Word.Application.11");	
 		}
-		println("downloadFormWord:downloadType=="+downloadType);
-		writeWord(bins, res, downloadType, req.version == "Word.Application.11");			
+	}
+}
+
+function downloadWIHisAttachments(req, res){
+	/**
+	 * 下载历史表中的附件
+	 */
+	var myOut = res.getOutputStream();
+	try{
+		getWiAttachment(req, myOut);
+	}finally{
+		myOut.close();
 	}
 }
 
@@ -909,8 +916,9 @@ function downloadDraftAttachment(req, res, task, id){
 		 */
 		var out = res.getOutputStream();
 		try{
-			if(StringUtils.equalsIgnoreCase(attachObj["contentType"], "xls") || StringUtils.equalsIgnoreCase(attachObj["contentType"], "xlsx")){
-				IOUtils.copy(input, out);
+			var fileExt = FilenameUtils.getExtension(attachObj["name"]);
+			if(StringUtils.equalsIgnoreCase(fileExt, "xls") || StringUtils.equalsIgnoreCase(fileExt, "xlsx")){
+				downloadXls(req, res, input, out);
 			}else{
 				var downloadType = -1;
 				var doc = new Document(input);
@@ -930,6 +938,26 @@ function downloadDraftAttachment(req, res, task, id){
 	}
 	finally {
 		IOUtils.closeQuietly(input);
+	}
+}
+
+/**
+ * 直接下载Excel文件
+ * @param {} req
+ * @param {} res
+ * @param {} input
+ * @param {} out
+ */
+function downloadXls(req, res, input, out){
+	ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/vnd.ms-excel", "utf-8", null, "excel.xls");
+	var needClose = out == null;
+	try{
+		if(needClose){
+			out = res.getOutputStream();
+		}
+		IOUtils.copy(input, out);
+	}finally{
+		out.close();
 	}
 }
 

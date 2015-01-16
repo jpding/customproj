@@ -73,6 +73,12 @@
 		this.$plugin = this.basedom().find(".sz-ci-wsoffice-plugs");
 		this.aodControl = this.$plugin[0];
 		
+		if(!ext){
+			ext = "doc";
+		}
+		
+		this.docType = WSOffice.Document[ext];
+		
   		//var download = "/meta/LAWCONT/others/test/word/wordedit.action?method=downloadword&facttable={0}&keyfield={1}&keys={2}&wordfield={3}";
 	    var ns = this.$plugin.data("namespace");
 	    if(ns){
@@ -210,7 +216,7 @@
 			return;
 		}
 		
-		this.aodControl.Open(url, null, "Word.Document");
+		this.aodControl.Open(url, null, this.docType);
 		
 		/**
 		 * word装入完成以后，如果该word有锁定的需求，那么需要显示锁定提示信息
