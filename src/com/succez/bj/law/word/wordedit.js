@@ -813,8 +813,14 @@ function saveWordInForm(req, res){
 	var state = getAuditState(ciTask, srcdwtable, req.period, req.datahierarchies);
 	println("saving:"+state);
 	if(state == "10" || state == null || state == ""){
+		/**
+		 * 起草阶段打开表单，附件一般都存储在草稿箱
+		 */
 		return editFormSavingWord(req, res, ciTask);
 	}else if(state == "20"){
+		/**
+		 * 审批表单界面，直接保存word，要注意非管理员打开word时，上传word文件的长度为0
+		 */
 		auditFormSavingWord(req, res, ciTask, formName, compName);
 	}
 }
@@ -836,8 +842,12 @@ function editFormSavingWord(req, res, citask){
 	var inputStream = file.getInputStream();
 	try {
 		println("filename:"+filename);
+		var size = inputStream.available();
+		if(ins == null || ins.available()==0){
+			throw new Error("word文件为空，请用管理员打开IE浏览器，然后重新编辑附件后在保存!");
+		}
 		var attachment = serviceAttachments.saveDraft(citask, req.id, req.period, req.datahierarchies, req.rowKey,
-				req.formName, req.compName, filename, contentType, inputStream.available(), inputStream, false);
+				req.formName, req.compName, filename, contentType, size, inputStream, false);
 		return getAttachmentInfo(attachment);
 	}
 	finally {
