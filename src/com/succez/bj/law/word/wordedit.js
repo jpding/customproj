@@ -107,14 +107,22 @@ function execute(req, res){
 	 */
 	if(!uas.isMsie()){
 		directDownloadWord(req, res);
-		//return ;
+		return ;
 	}
 	
 	/**
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
 	 */
 	res.attr("ignoreChromeFrame", "true");
-	res.attr("ext", "doc");
+	var ext = req.ext;
+	if(!ext){
+		ext = "doc";
+	}
+	
+	res.attr("ext", ext);
+	if(req.mth){
+		res.attr("method", req.mth);
+	}
 	return "wordedit.ftl";
 }
 
@@ -124,7 +132,7 @@ function execute(req, res){
  * @param {} res
  */
 function directDownloadWord(req, res){
-	
+	downloadFormWord(req, res);
 }
 
 /**
@@ -147,7 +155,6 @@ function downloadword(req, res){
 	var ins = getWordInputStream(params);
 	var input = java.io.BufferedInputStream(ins);
 	try{
-		
 		ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword","utf-8", null, "word.doc");
 				
 		var downloadtype = NumberUtils.toInt((params.downloadtype+""), ProtectionType.READ_ONLY);
@@ -564,8 +571,9 @@ function downloadFormWord(req, res){
 		
 		var fileExt = FilenameUtils.getExtension(fileName);
 		if(StringUtils.equalsIgnoreCase(fileExt, "xls") || StringUtils.equalsIgnoreCase(fileExt, "xlsx")){
-				downloadXls(req, res, bins, null);
-		}else{		
+				downloadXls(req, res, bins, null, fileName);
+		}else{	
+			ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword", "utf-8", null, fileName);
 			/**
 			 * 下载已经存储到表单数据库中的文档：
 			 * 1.该表单已经提交审批了， 留痕打开
@@ -926,10 +934,12 @@ function downloadDraftAttachment(req, res, task, id){
 		 */
 		var out = res.getOutputStream();
 		try{
-			var fileExt = FilenameUtils.getExtension(attachObj["name"]);
+			var fileName = attachObj["name"];
+			var fileExt = FilenameUtils.getExtension(fileName);
 			if(StringUtils.equalsIgnoreCase(fileExt, "xls") || StringUtils.equalsIgnoreCase(fileExt, "xlsx")){
-				downloadXls(req, res, input, out);
+				downloadXls(req, res, input, out, fileName);
 			}else{
+				ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/msword", "utf-8", null, fileName);
 				var downloadType = -1;
 				var doc = new Document(input);
 				if(isTemplateContract(doc)){
@@ -958,8 +968,8 @@ function downloadDraftAttachment(req, res, task, id){
  * @param {} input
  * @param {} out
  */
-function downloadXls(req, res, input, out){
-	ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/vnd.ms-excel", "utf-8", null, "excel.xls");
+function downloadXls(req, res, input, out, fileName){
+	ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), "application/vnd.ms-excel", "utf-8", null, fileName);
 	var needClose = out == null;
 	try{
 		if(needClose){
@@ -1416,8 +1426,14 @@ function getWiAttachment(req, out){
 	attachContent.setAttachment(attach);
 	var content = attachContent.getContent();
 	try {
+		var fileName = attach.getName();
+		var fileExt = StringUtils.lowerCase(FilenameUtils.getExtension(fileName));
+		var contentDisposition = "application/msword";
+		if(fileExt == "xls" || fileExt == "xlsx"){
+			contentDisposition = "application/vnd.ms-excel";
+		}
+		ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), contentDisposition,"utf-8", null, fileName);
 		IOUtils.copy(content, out);
-		return attach.getName();
 	}
 	finally {
 		content.close();

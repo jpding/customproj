@@ -6,6 +6,7 @@ var mgr = BeanGetter.getBean(com.succez.commons.jdbc.ConnectionFactoryManager);
 var sf  = BeanGetter.getBean(com.succez.commons.jdbc.sql.SQLFactory);
 var queryAttach   = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilQueryAttachments);
 var attachContent = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilAttachmentContent);
+var uas = BeanGetter.getBean(com.succez.commons.util.domain.UserAgentService);
 
 var MyByteArrayOutputStream = com.succez.commons.util.io.MyByteArrayOutputStream;
 var MyByteArrayInputStream  = com.succez.commons.util.io.MyByteArrayInputStream;
@@ -56,10 +57,10 @@ function execute(req, res){
 			/**
 			 * 如果是上传，并且是草稿，那么那就直接打开，但对于范本合同，应该只读打开
 			 */
-			res.attr("downloadtype",ProtectionType.READ_ONLY);
-			res.attr("method", "downloadFormWord");
-			res.attr("ext", ext);
-			return "wordedit.ftl";
+//			res.attr("downloadtype",ProtectionType.READ_ONLY);
+//			res.attr("method", "downloadFormWord");
+//			res.attr("ext", ext);
+			return "redirect:/meta/LAWCONT/others/word/wordedit.action?mth=downloadFormWord&ext="+ext+"&"+req.getQueryString();
 		}else if(ext == "pdf"){
 			res.setContentType(contentType);
 			showPdf(res, myOut);
@@ -185,13 +186,6 @@ function getContractInputStreamByDraft(task, id, myOut, attachmentObj){
 			attachmentObj["name"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_FILENAME);
 //			attachmentObj["updateTime"] = String.valueOf(attachment.getUpdateTime());
 			attachmentObj["contentType"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_CONTENTTYPE);		
-		}
-		
-		var input = rs.getBinaryStream(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
-		try{
-			IOUtils.copy(input, myOut);
-		}finally{
-			IOUtils.closeQuietly(input);
 		}
 	}
 	finally {
