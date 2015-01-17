@@ -1,24 +1,67 @@
 /**
  *  {form=STARTFORM, datas={"UID":"e4ca9a15d35549bfb17d0e9754cd2997","BID_NAME_":"AAAA","PRO_INTRO":"s324324","BID_WAY_ID":"01","CURR_ID":"CNY","BID_AMOUNT":123213234,"CONT_MAIN_TYPE":"","CONT_SUB_TYPE":"","AGENCY":"","INVITED_SUPPLY":"","QUALIFICATION_REQUIREMENTS":"","REMARK":"","ORG":"TEST","dim":"value"}, resid=6553629}
  */
-var BeanGetter = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
+var BeanGetterHolder = com.succez.commons.service.springmvcext.BeanGetterHolder;
+var BeanGetter = BeanGetterHolder.getBeanGetter();
 var WIFlowService = com.succez.bi.wi.WIFlowService;
 var WIUtilStartInstance = com.succez.bi.wi.util.WIUtilStartInstance;
 var WIWebUtilParams     = com.succez.bi.wi.util.web.WIWebUtilParams;
 var ObjectMapper        = org.codehaus.jackson.map.ObjectMapper;
+var StringUtils         = com.succez.commons.util.StringUtils;
 var CIUtilDataInsert = com.succez.bi.ci.util.CIUtilDataInsert;
 var MetaRepository = com.succez.metadata.api.MetaRepository;
 var CITask = com.succez.bi.ci.meta.CITask;
 var ActionCIAddDataComponent = com.succez.bi.ci.impl.pages.cidatamgr.adddata.ActionCIAddDataComponent;
-
 var NumberUtils = com.succez.commons.util.NumberUtils;
-var StringUtils         = com.succez.commons.util.StringUtils;
 
 function main(args){
-	test_GenHTBH("test", "b3c014a5ab9b4901b83dd8ba149f8fe4");
+	var genHtbh = new GenHTBH("test", "2fb66edcfec04573b3d5e793a1b5f1d3");
+	println(genHtbh.genHTBHPrefix());
 }
 
+var NODE_START = "startevent1";
+var NODE_END   = "sid-509D57E3-D450-4800-B61A-F8F99F20F81B";
 
+/**
+ * 流程活动，包含节点，包含线条等
+ * @param {} flow
+ * @param {} event
+ * @param {} vars
+ * @return {String}
+ */
+function onActivityCompleted(flow, event,variables){
+	/**
+	 * 流程开始，更新合同状态
+	 */
+	var nodeId = event.getActivityId();
+	var uid = variables.get("UID");
+	println(flow.getPath()+"\t"+nodeId+"\t"+uid);
+	var startForm = flow.getWIForm("STARTFORM", false);
+	if(startForm != null){
+		println("formPath:"+startForm.getPath());
+	}
+	
+	/**
+	 * 开始节点
+	 */
+	var ds = sz.db.getDefaultDataSource();
+	if(StringUtils.equalsIgnoreCase(nodeId, NODE_START)){
+		ds.update("update LC_HZ_CONT_INFO set STATUS_ = '20' where UID=?", uid);
+	}else if(StringUtils.equalsIgnoreCase(nodeId, NODE_END)){
+		var htbh = variables.get('CONTRACT_CODE');
+		if (htbh==null || htbh==""){
+			test_GenHTBH(variables.get('CREATEUSER'), uid);	
+		}else{
+			ds.update("update LC_HZ_CONT_INFO set STATUS_ ='30' where UID=?", uid);	  
+		}
+	}
+}
+
+function onAssigneeFilter_tzwbgs($flow,datas){
+	var result = [];
+	result.push(sz.security.getCurrentUser().id);			  
+	return result;
+}	
 
 /**
  * 生成合同编号，同步合同履行数据
@@ -26,7 +69,12 @@ function main(args){
  * @return {}
  */
 function test_GenHTBH(jbr, uid){
+	print(jbr + " :: " + uid);
 	genHTBH(jbr,uid);
+	//更新状态
+	print("开始更新状态");
+	var ds = sz.db.getDefaultDataSource();
+	ds.update("update LC_HZ_CONT_INFO set STATUS_ ='30' where UID=?", uid);
 }
 
 function genHTBH(jbr, uid){
@@ -48,14 +96,14 @@ function GenHTBH(jbr, uid){
  * 返回需要操作的数据库表
  */
 GenHTBH.prototype.getDBTable = function(){
-	return "LC_LC_CONTRACTINFO";
+	return "LC_HZ_CONT_INFO";
 }
 
 /**
  * 返回合同编号字段
  */
 GenHTBH.prototype.getHTBHField = function(){
-	return "CONT_ID";
+	return "CONTRACT_CODE";
 }
 
 /**
@@ -96,7 +144,7 @@ GenHTBH.prototype.genPrefixSQL = function(ds){
 	var dialect = ds.getDialect();
 	var sql = [];
 	sql.push("Select ");
-	sql.push("CONT_NUM,CREATEUSER");
+	sql.push("PROJ_NUM,CREATEUSER");
 	sql.push(" from ");
 	sql.push(this.getDBTable());
 	sql.push(" where ");
@@ -147,7 +195,3 @@ GenHTBH.prototype.update=function(uid){
 		//释放锁
 	}
 }
-
-/**
- * =========================合同编号结束==========================================
- */
