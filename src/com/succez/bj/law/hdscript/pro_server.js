@@ -68,22 +68,6 @@ function generateDetailGrainId(repo, task, period, hierachy) {
 	return com.succez.commons.util.StringUtils.replace(uid, "-", "");
 }
 
-/**
-* 根据维表代码查询某个特定的属性的值
-* @params dimpath 维表路径
-* @params code 维代码
-* @params property 维属性名称
-* @return 返回维属性值
-*/
-function dim(dimpath, code, property){
-	var beangetter = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
-	var repo = beangetter.getBean(com.succez.metadata.api.MetaRepository);
-	var entity = repo.getMetaEntity(dimpath);
-	var dim = entity.getBusinessObject(com.succez.bi.dw.DimensionTable);
-	var treeitem = dim.getTreeItem(code).getField(property);
-	return treeitem;
-};
-
 function listUsers(org){
 	var userMgr = sz.security.getUserManager();
 	var fullOrg = "security:/orgmgr/"+org;
@@ -99,7 +83,6 @@ function listUsers(org){
 	}
 	return result;
 }
-
 /**
 *  在合同生效之后，更新合同状态为审批通过
 */
@@ -123,4 +106,57 @@ function onAssigneeFilter_bmldsh($flow,datas){
 	var result = getUserByStarter(userid,"部门领导").split(",");
 	print(result);
 	return result;
+}
+
+function onAssigneeFilter_bzsh($flow,datas){
+	print("onAssigneeFilter_bzsh");
+	var userid = sz.security.getCurrentUser().id;
+	var result = getUserByStarter(userid,"部长").split(",");
+	print(result);
+	return result;
+}
+
+var StringUtils = com.succez.commons.util.StringUtils;
+var FilenameUtils    = com.succez.commons.util.FilenameUtils;
+
+/**
+ * 工作流全局事件，解决工作流，送审后的状态，以及审批完成后的设置 
+ */
+var NODE_START = "startevent1";
+var NODE_END   = "endevent";
+
+/**
+ * 流程活动，包含节点，包含线条等，用于解决流程审批中、流程结束，修改事实表的相关字段
+ */
+function onActivityCompleted(flow, event,variables){
+	/**
+	 * 流程开始，更新合同状态
+	 */
+	var nodeId = event.getActivityId();
+	var uid = variables.get("UID");
+	println("wipath:"+flow.getPath()+"\tnodeid:"+nodeId+"\tuid:"+uid);
+	var startForm = flow.getWIForm("STARTFORM", false);
+	if(startForm == null){
+		return ;
+	}
+	
+	var formPath = startForm.getPath();
+	println("formPath:"+formPath);
+	/**
+	 * LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO/forms/default/HZ_CONT_INFO
+	 * @type String
+	 */
+	var citaskpath = StringUtils.substringBefore(formPath, "/forms/default/");
+	var dwTable =  FilenameUtils.getName(formPath);
+	
+	var ds = sz.db.getDefaultDataSource();
+	if(StringUtils.equalsIgnoreCase(nodeId, NODE_START)){
+		var update = sz.ci.getDataUpdater(citaskpath);
+		update.set({UID:uid,dwtable:dwTable,field:"STATUS_",value:"20"});
+		update.commit();
+	}else if(StringUtils.startsWith(nodeId, NODE_END)){
+		var update = sz.ci.getDataUpdater(citaskpath);
+		update.set({UID:uid,dwtable:dwTable,field:"STATUS_",value:"30"});
+		update.commit();
+	}
 }
