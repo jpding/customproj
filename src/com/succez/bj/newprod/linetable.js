@@ -280,7 +280,7 @@ function drawMileStone(table, startCell, endCell, dataStartCol, startTimeCol, en
 		var vv = v.substring(0,6);
 		var cl = getConditionCell(table, startCell, vv, dataStartCol);
 		if(cl != null){
-			cl.value= (i>=2?"★":"")+java.lang.Integer.parseInt(v.substring(4,6))+"."+v.substring(6,8);
+			cl.value= "★"+java.lang.Integer.parseInt(v.substring(4,6))+"."+v.substring(6,8);
 		}
 	}
 	
