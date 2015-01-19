@@ -38,7 +38,7 @@ function copyData(path, uid){
 	update.set({UID:touid,dwtable:"HZ_CONT_INFO",field:"CREATEUSER",value:userid});
 	update.set({UID:touid,dwtable:"HZ_CONT_INFO",field:"STATUS_",value:"10"});
 	update.set({UID:touid,dwtable:"HZ_CONT_INFO",field:"ORG",value:orgId});
-	update.set({UID:touid,dwtable:"HZ_CONT_INFO",field:"CREATETIME",value:now()});
+	update.set({UID:touid,dwtable:"HZ_CONT_INFO",field:"CREATETIME",value:tostr(now(),'yyyymmdd hh:mm:ss')});
 	update.commit();
 	
 	return touid;
