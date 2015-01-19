@@ -60,7 +60,14 @@ function execute(req, res){
 //			res.attr("downloadtype",ProtectionType.READ_ONLY);
 //			res.attr("method", "downloadFormWord");
 //			res.attr("ext", ext);
-			return "redirect:/meta/LAWCONT/others/word/wordedit.action?mth=downloadFormWord&ext="+ext+"&"+req.getQueryString();
+			var ppt = req.getParameterMap();
+			var keys = ppt.keySet().toArray();
+			var queryString = [];
+			for(var i=0 ; i<keys.length ; i++){
+				queryString.push(keys[i]+"="+req.getParameter(keys[i]));
+			}
+			println("querystring:"+queryString.join("&"));
+			return "redirect:/meta/LAWCONT/others/word/wordedit.action?mth=downloadFormWord&ext="+ext+"&"+queryString.join("&");
 		}else if(ext == "pdf"){
 			res.setContentType(contentType);
 			showPdf(res, myOut);
