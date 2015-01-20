@@ -180,6 +180,16 @@
 		
 		widlg.showWIFormDialog(wiPath, null, width, height, formData, callback);
 	}
+	
+	/**
+	 * 显示CI中的文件资源
+	 */
+	widlg.showfile = function(ciresid, org, uid, rowKey, dwTable, fileContentField, fileNameField){
+		var datahierarchies = encodeURIComponent(encodeURIComponent("ORG="+org+"&UID="+uid));
+		var url = sz.sys.ctx("/meta/LAWCONT/others/word/showfile.action?path="+ciresid+"&datahierarchies="+
+		 datahierarchies+"&rowKey="+rowKey+"&dwTable="+dwTable+"&fileContentField="+fileContentField+"&fileNameField="+fileNameField);
+		window.open(url);
+	}
 
 	
 	widlg.REPORTDEFAULTPARAMS = {$sys_calcnow:true, $sys_disableCache:true, $sys_showCaptionPanel:false};
