@@ -98,7 +98,7 @@ function main(args){
  * @mapping
  */
 function execute(req, res){
-	res.attr("downloadtype",ProtectionType.READ_ONLY);
+	res.attr("downloadtype", ProtectionType.ALLOW_ONLY_FORM_FIELDS);
 	if(req.namespace){
 		res.attr("namespace",req.namespace);
 	}
@@ -594,9 +594,11 @@ function downloadFormWord(req, res){
 				downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
 			} else if(state == "-1"){
 				/**
-				 * 不存在状态字段
+				 * 不存在状态字段，由于合同范本里面设置了限制编辑，并且是只读状态是可以编辑的，这样就导致浏览范本时，会看到
+				 * 那些可编辑项是可以填写的，目前这里设置成只能填写表单域，而范本里面是没有表单域的，这样就是只读状态了
 				 */
-				downloadType = ProtectionType.READ_ONLY;
+				//downloadType = ProtectionType.READ_ONLY;
+				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
 			}
 			println("downloadFormWord:downloadType=="+downloadType);
 			writeWord(bins, res, downloadType, req.version == "Word.Application.11");	
@@ -610,14 +612,35 @@ function downloadWIHisAttachments(req, res){
 	 */
 	var myOut = res.getOutputStream();
 	try{
-		getWiAttachment(req, myOut);
+		getWiAttachment(req, res, myOut);
 	}finally{
 		myOut.close();
 	}
 }
 
+/**
+ * STARTFORM,SZRSH,BMLDSH,BZSH
+ */
+function getDocAuditType(req){
+	var formName = req.wiformname;
+	var formNames = ["STARTFORM","SZRSH","BMLDSH","BZSH"];
+	var idx = formNames.indexOf(StringUtils.upperCase(formName));
+	if(idx>=0){
+		return  ProtectionType.READ_ONLY;
+	}
+	return ProtectionType.ALLOW_ONLY_REVISIONS;
+}
+
+/**
+ * 对于合同管理，在流程内部是只读的，如果在部门外才是修订模式
+ * @return {}
+ */
 function getDocConflictDownloadType(req,citask, resid, dwTable, fileContentField, datahierarchies){
 	var downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
+	if(citask != null && citask.getPath() == "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO"){
+		downloadType = getDocAuditType(req);
+		println("contract downloadType:"+downloadType);
+	}
 	/**
 	 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
 	 * 只是需要修改的附件，才需要锁定，例如：合同文本，规章制度文本，而除此之外的文档，不需要
@@ -635,7 +658,7 @@ function getDocConflictDownloadType(req,citask, resid, dwTable, fileContentField
 			if(ISDEBUG){
 				println("lockObj:"+lockObj.user+","+lockObj.createtime+","+lockObj.id);
 			}
-			downloadType = ProtectionType.READ_ONLY;
+			downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
 		}
 	}
 	return downloadType;
@@ -1415,7 +1438,7 @@ var attachContent = BeanGetter.getBean(com.succez.bi.wi.util.WIUtilAttachmentCon
  * @param {} req
  * @param {} out
  */
-function getWiAttachment(req, out){
+function getWiAttachment(req, res, out){
 	queryAttach.reset();
 	queryAttach.setAttachementId(req.id);
 	var attach = queryAttach.singleResult();
