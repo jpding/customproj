@@ -151,12 +151,39 @@ function onActivityCompleted(flow, event,variables){
 	
 	var ds = sz.db.getDefaultDataSource();
 	if(StringUtils.equalsIgnoreCase(nodeId, NODE_START)){
+		startBeforeModifyStatus(update, uid, dwTable, variables, nodeId);
 		var update = sz.ci.getDataUpdater(citaskpath);
 		update.set({UID:uid,dwtable:dwTable,field:"STATUS_",value:"20"});
+		update.set({UID:uid,dwtable:dwTable,field:"ORG",value:variables.get("ORG")});
 		update.commit();
 	}else if(StringUtils.startsWith(nodeId, NODE_END)){
 		var update = sz.ci.getDataUpdater(citaskpath);
 		update.set({UID:uid,dwtable:dwTable,field:"STATUS_",value:"30"});
+		update.set({UID:uid,dwtable:dwTable,field:"ORG",value:variables.get("ORG")});
+		/**
+		 * 和合同状态一起修改相关数据
+		 */
+		endModifingStatus(update, uid, dwTable, variables, nodeId);
 		update.commit();
+		
+		/**
+		 * 让个性化的流程实现定制功能
+		 */
+		endAfterModifyStatus(update, uid, dwTable, variables, nodeId);
 	}
+}
+
+/**
+ * 流程开始脚本
+ */
+function startBeforeModifyStatus(update, uid, dwTable, variables, nodeId){
+
+}
+
+function endModifingStatus(update, uid, dwTable, variables, nodeId){
+	
+}
+
+function endAfterModifyStatus(update, uid, dwTable, variables, nodeId){
+	
 }
