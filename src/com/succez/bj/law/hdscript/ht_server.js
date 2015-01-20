@@ -20,40 +20,13 @@ function main(args){
 }
 
 var NODE_START = "startevent1";
-var NODE_END   = "sid-509D57E3-D450-4800-B61A-F8F99F20F81B";
+var NODE_END   = "endevent1";
 
-/**
- * 流程活动，包含节点，包含线条等
- * @param {} flow
- * @param {} event
- * @param {} vars
- * @return {String}
- */
-function onActivityCompleted(flow, event,variables){
-	/**
-	 * 流程开始，更新合同状态
-	 */
-	var nodeId = event.getActivityId();
-	var uid = variables.get("UID");
-	println(flow.getPath()+"\t"+nodeId+"\t"+uid);
-	var startForm = flow.getWIForm("STARTFORM", false);
-	if(startForm != null){
-		println("formPath:"+startForm.getPath());
-	}
-	
-	/**
-	 * 开始节点
-	 */
-	var ds = sz.db.getDefaultDataSource();
-	if(StringUtils.equalsIgnoreCase(nodeId, NODE_START)){
-		ds.update("update LC_HZ_CONT_INFO set STATUS_ = '20' where UID=?", uid);
-	}else if(StringUtils.equalsIgnoreCase(nodeId, NODE_END)){
-		var htbh = variables.get('CONTRACT_CODE');
-		if (htbh==null || htbh==""){
-			test_GenHTBH(variables.get('CREATEUSER'), uid);	
-		}else{
-			ds.update("update LC_HZ_CONT_INFO set STATUS_ ='30' where UID=?", uid);	  
-		}
+function endAfterModifyStatus(update, uid, dwTable, variables, nodeId){
+	var htbh = variables.get('CONTRACT_CODE');
+	var jbr = variables.get('CREATEUSER');
+	if (htbh==null || htbh==""){
+		genHTBH(jbr,uid);
 	}
 }
 
@@ -61,20 +34,6 @@ function onAssigneeFilter_tzwbgs($flow,datas){
 	var result = [];
 	result.push(sz.security.getCurrentUser().id);			  
 	return result;
-}	
-
-/**
- * 生成合同编号，同步合同履行数据
- * @param {} initiator
- * @return {}
- */
-function test_GenHTBH(jbr, uid){
-	print(jbr + " :: " + uid);
-	genHTBH(jbr,uid);
-	//更新状态
-	print("开始更新状态");
-	var ds = sz.db.getDefaultDataSource();
-	ds.update("update LC_HZ_CONT_INFO set STATUS_ ='30' where UID=?", uid);
 }
 
 function genHTBH(jbr, uid){
