@@ -25,7 +25,7 @@ $.extend({
 	 checkSubmitAudit:function($flow, formName, isSave, callback){
 		var fillforms = $flow.getForm();
 		if(formName){
-			fillforms.setValue(isSave ? "10" : "20","hide_status_",formName);
+			fillforms.setValue("10","hide_status_",formName);
 		}
 		var dataMgr = fillforms.datamgr;
 		fillforms.endEdit({
@@ -292,7 +292,7 @@ function hiddenWIButtons($flow, buttons){
 	 * 编辑表单中的word文件
 	 * sz.ci.custom.uploadattachment.editAttachmentAsDoc($form, "htwb");
 	 */
-	upload.editAttachmentAsDoc = function($form, compid,callback){
+	upload.editAttachmentAsDoc = function($form, compid,callback, exParams){
 		var htwb = $form.getComponent(compid);
 
 		if(!htwb.oldGetAttachmentValue){
@@ -308,6 +308,19 @@ function hiddenWIButtons($flow, buttons){
 				if(!attachmentInf.name){
 					attachmentInf.name = "word.doc";
 				}
+				
+				/**
+				 * 在下载word时，加入一些特殊的参数，
+				 * 例如：
+				 */
+				if(exParams){
+					var url = attachmentInf.url;
+					for(var pkey in exParams){
+						url = upload.setParameterOfUrl(pkey, exParams[pkey], url);
+					}
+					attachmentInf.url = url;
+				}
+				
 				/**
 				 * attachmentInf.name = "word.doc";
 				 */
@@ -438,6 +451,16 @@ function hiddenWIButtons($flow, buttons){
 		 * attachmentInf.name = "word.doc";
 		 */
 		return url;
+	}
+	
+	/**
+	 * 重构链接，往链接里面设置一个参数，或者修改一个参数的值
+	 */
+	upload.setParameterOfUrl = function(key, value, url){
+		var idx = url.indexOf("?");
+		var perfix = url.substring(0, idx);
+		var mUrl = url.substring(idx);
+		return perfix+sz.utils.setParameterOfUrl(key, value, mUrl);
 	}
 	
 	/**
