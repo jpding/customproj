@@ -75,12 +75,11 @@ function execute(request, res){
 			        prestmt.setString(2, mSignatureID);
     	    		prestmt.setString(3, mSignature);
         			prestmt.execute();
-        			prestmt.close();
 			        mResult=true;
 
 				}
       			catch(e){
-       		 		println("保存签章错误:"+e.toString());
+       		 		out.println("保存签章错误:"+e.toString());
         			mResult=false;
       			}finally{
       				prestmt.close();
@@ -119,7 +118,7 @@ function execute(request, res){
 					println(strSql);
 				}
 				catch(ex){
-					println(ex.toString());
+					out.println(ex.toString());
 				}
 			}
   		}finally{
@@ -234,7 +233,7 @@ function execute(request, res){
 			prestmt.close();
 	        mResult=true;
   		}catch(e){
-  			println(e.toString());
+  			out.println(e.toString());
         	mResult=false;
   		}finally{
   			conn.close();
@@ -273,7 +272,7 @@ function execute(request, res){
 			} 
 		}
 		catch(e){
-			println(e.toString());
+			out.println(e.toString());
 		}		
 	}
 
@@ -315,8 +314,8 @@ function execute(request, res){
 	        }finally{
 	        	prestmt.close();
 	        }
-	    }catch(e){
-	    	println(e.toString());
+	    }catch(ex1){
+	    	out.println(ex1);
 	        mResult=false;
 	    }finally{
 	    	conn.close();
