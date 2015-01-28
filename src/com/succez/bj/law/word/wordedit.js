@@ -622,6 +622,9 @@ function downloadWIHisAttachments(req, res){
  * STARTFORM,SZRSH,BMLDSH,BZSH
  */
 function getDocAuditType(req){
+	/**
+	 * 如果自由合同，那么则应该是留痕模式
+	 */
 	var formName = req.wiformname;
 	var formNames = ["STARTFORM","SZRSH","BMLDSH","BZSH"];
 	var idx = formNames.indexOf(StringUtils.upperCase(formName));
@@ -637,10 +640,14 @@ function getDocAuditType(req){
  */
 function getDocConflictDownloadType(req,citask, resid, dwTable, fileContentField, datahierarchies){
 	var downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
-	if(citask != null && citask.getPath() == "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO"){
+	
+	var isContModel = getCITableFieldValue(citask, dwTable, req.dataperiod, datahierarchies, "ISCONTRACTMODEL");
+	if(isContModel == "1" && citask != null && citask.getPath() == "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO"){
 		downloadType = getDocAuditType(req);
 		println("contract downloadType:"+downloadType);
 	}
+	
+	
 	/**
 	 * 审批后在表单中打开word，要判断多人同时编辑的情形，其判断的逻辑见lock函数
 	 * 只是需要修改的附件，才需要锁定，例如：合同文本，规章制度文本，而除此之外的文档，不需要
