@@ -12,7 +12,7 @@ var StringUtils = com.succez.commons.util.StringUtils;
 var BufferedInputStream = java.io.BufferedInputStream;
 var FileInputStream = java.io.FileInputStream;
 
-var BASE_DIR = "";
+var BASE_DIR = "c:/共享";
  
 function execute(req, res){
 	try{
@@ -40,7 +40,7 @@ function getFileInput(req){
 	}
 	
 	var dir = StringUtils.ensureNotEndWith(BASE_DIR, "/");
-	if(path.charAt(0)!="/" && path.charAt(0)=="\\"){
+	if(path.charAt(0)!="/" && path.charAt(0)!="\\"){
 		path = "/" + path;
 	}
 	var filePath = dir+path;
