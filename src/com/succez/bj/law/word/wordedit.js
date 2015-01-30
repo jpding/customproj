@@ -133,7 +133,21 @@ function execute(req, res){
  * @param {} res
  */
 function directDownloadWord(req, res){
-	downloadFormWord(req, res);
+	/**
+	 * 要区分是在工作流中的附件还是在表单中附件
+	 */
+	println("directDownloadWord:"+req.getRequestURI());
+	var id = req.id;
+	var resid = req.path;
+	
+	/**
+	 * 工作流中的附件，只有单独的id参数，没有任何附加信息
+	 */
+	if(StringUtils.isNotBlank(id) && !StringUtils.isNotBlank(resid)){
+		downloadWIHisAttachments(req, res);
+	}else{
+		downloadFormWord(req, res);
+	}
 }
 
 /**
@@ -556,12 +570,8 @@ function downloadFormWord(req, res){
 	}
 	
 	if(StringUtils.isNotBlank(id)){
-		if(StringUtils.isNotBlank(resid)){
-			var citask = serviceAttachments.getCITask(resid);
-			downloadDraftAttachment(req, res, citask, id);
-		}else{
-			downloadWIHisAttachments(req, res);
-		}
+		var citask = serviceAttachments.getCITask(resid);
+		downloadDraftAttachment(req, res, citask, id);
 	}else{
 		var citask = serviceAttachments.getCITask(resid);
 		datahierarchies = URLDecoder.decode(datahierarchies, "utf-8");
@@ -604,6 +614,16 @@ function downloadFormWord(req, res){
 			writeWord(bins, res, downloadType, req.version == "Word.Application.11");	
 		}
 	}
+}
+
+/**
+ * 下载或者打开工作流中的内容，在合同审批中，法务部上传的意见修改，要进行在线留痕
+ * @param {} req
+ * @param {} res
+ * @mapping
+ */
+function downloadwiattach(req, res){
+	downloadWIHisAttachments(req, res);
 }
 
 function downloadWIHisAttachments(req, res){
@@ -1466,9 +1486,33 @@ function getWiAttachment(req, res, out){
 			contentDisposition = "application/vnd.ms-excel";
 		}
 		ActionUtils.setHeaderForDownload(res, req.getHeader("USER-AGENT"), contentDisposition,"utf-8", null, fileName);
+		/**
+		 * 如果是word，那么以修订模式打开，并且可以保存
+		 */
+		
 		IOUtils.copy(content, out);
 	}
 	finally {
 		content.close();
 	}
 }
+
+/**
+ * 更新工作流中的附件，并且只是法务人员上传的附件，附件存储以修订的方式打开，直接修改工作流对应的附件表，不是通过工作流的方法修改
+ * 目前是所有人员的附件，都进行修订存储
+ * ACT_GE_BYTEARRAY   
+ * 	  ID_、BYTES_
+ * ACT_HI_ATTACHMENT
+ *    ID_、CONTENT_ID_
+ * ACT_HI_ATTACHMENT.CONTENT_ID_ = ACT_GE_BYTEARRAY.ID_   
+ */
+function updateWIAttachment(id, content){
+	var ds = sz.db.getDefaultDataSource();
+	var rs = ds.select("select CONTENT_ID_ from ACT_HI_ATTACHMENT where ID_=?", id);
+	if(!rs || rs.length == 0 || rs[0].length == 0){
+		return "根据“"+id+"”找不到对应的附件ID";
+	}
+	var content_id = rs[0][0]; 
+	ds.update("update ACT_GE_BYTEARRAY set BYTES_ = ? where ID_ = ?", [content, content_id]);
+}
+
