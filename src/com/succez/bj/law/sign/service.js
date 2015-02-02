@@ -261,10 +261,10 @@ function execute(request, res){
 				// ObjFileReader.read(ChrBuffer, 0, 1);
 				// println(ChrBuffer);
 				while((intLength=isr.read(ChrBuffer))!=-1){    // 读文件内容
-					out.write(ChrBuffer,0,intLength);         
+					out.print(new java.lang.String(ChrBuffer,0,intLength));         
 				} 
-				out.write("\r\n");
-				out.write("RESULT=OK");
+				out.print("\r\n");
+				out.print("RESULT=OK");
 				isr.close(); // 关闭读文件对象
 			} 
 			else{
