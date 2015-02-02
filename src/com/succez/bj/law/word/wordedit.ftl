@@ -30,7 +30,10 @@ menubar必须设置为1，即显示menubar，否则会出现一个黑线，然�
 			<@script>
 				ext = '${ext!"doc"}';
 				method = '${method!""}';
+				savemethod   = '${savemethod!""}';
+				
 				var wsOffice = $$(".sz-ci-wsoffice");
+				
 				$(window).bind("beforeunload", function(){
 					if(ext == "xls" || ext== "xlsx"){
 						return ;

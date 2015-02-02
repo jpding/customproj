@@ -115,15 +115,22 @@ function execute(req, res){
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
 	 */
 	res.attr("ignoreChromeFrame", "true");
-	var ext = req.ext;
+	var ext = req.getAttribute("ext");
 	if(!ext){
 		ext = "doc";
 	}
-	
 	res.attr("ext", ext);
-	if(req.mth){
-		res.attr("method", req.mth);
+	
+	var mtd = req.getAttribute("method");
+	if(mtd){
+		res.attr("method", mtd);
 	}
+	
+	var savemtd = req.getAttribute("savemethod");
+	if(savemtd){
+		res.attr("savemethod", savemtd);
+	}
+	
 	return "wordedit.ftl";
 }
 
@@ -843,6 +850,24 @@ function makeTemplateContract(doc, formDatas){
 	}
 }
 
+/**
+ * wordedit.action?id=xxx&method=saveWordInWI&xxx
+ * 保存工作流中的word文档
+ * @param {} req
+ * @param {} res
+ */
+function saveWordInWI(req, res){
+	var wordfile = getUploadFile(req);
+	/**
+	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
+	 */
+	var ins = wordfile.file.getInputStream();
+	try{
+		return updateWIAttachment(req.id, ins);
+	}finally{
+		ins.close();
+	}
+}
 
 /**
  * 在审批过程中，要对word文档进行修改，这时数据会直接写入数据库对应的表单库，而不是写入到草稿库中
@@ -1489,8 +1514,11 @@ function getWiAttachment(req, res, out){
 		/**
 		 * 如果是word，那么以修订模式打开，并且可以保存
 		 */
-		
-		IOUtils.copy(content, out);
+		if(fileExt=="doc" || fileExt == "docx"){
+			writeWordByInputStream(content, out, ProtectionType.ALLOW_ONLY_REVISIONS, req.version == "Word.Application.11");
+		}else{
+			IOUtils.copy(content, out);
+		}
 	}
 	finally {
 		content.close();
@@ -1512,7 +1540,16 @@ function updateWIAttachment(id, content){
 	if(!rs || rs.length == 0 || rs[0].length == 0){
 		return "根据“"+id+"”找不到对应的附件ID";
 	}
+	/**
+	 * 2015-1-14 在WIN7下，非管理员点击保存，这样上传的附件是空，这样会导致覆盖以前的附件，故在这里怕判断，如果是0字节的文件，
+	 *   不让存储
+	 */
+	if(content == null || content.available()==0){
+		return INFO_WORD_ERROR;
+	}
+	
 	var content_id = rs[0][0]; 
 	ds.update("update ACT_GE_BYTEARRAY set BYTES_ = ? where ID_ = ?", [content, content_id]);
+	return "success";
 }
 

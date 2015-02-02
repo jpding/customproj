@@ -34,6 +34,7 @@ function execute(req, res){
 		var filename = "";
 		var id = req.id;
 		var resid = req.path;
+		var isInWorkflow = false;
 		if(StringUtils.isNotBlank(id)){
 			/**
 			 * id不为空，有可能是工作流中的附件，工作流中的附件只有一个id，并且没有其他参数
@@ -43,10 +44,18 @@ function execute(req, res){
 				var attachmentObj = {};
 				getContractInputStreamByDraft(citask, id, myOut, attachmentObj);
 				filename = attachmentObj.name;
+				println("filename:"+filename)
 			}else{
+				/**
+				 * 工作流中的附件
+				 */
 				filename = getWiAttachment(req, myOut);
+				isInWorkflow = true;
 			}
 		}else{
+			/**
+			 * 获取采集表单中已经存储的附件
+			 */
 			var attachmentInf = getAttachment(req, myOut);
 			filename = attachmentInf.getFilename();
 		}
@@ -57,21 +66,21 @@ function execute(req, res){
 			/**
 			 * 如果是上传，并且是草稿，那么那就直接打开，但对于范本合同，应该只读打开
 			 */
-//			res.attr("downloadtype",ProtectionType.READ_ONLY);
-//			res.attr("method", "downloadFormWord");
-//			res.attr("ext", ext);
-			var ppt = req.getParameterMap();
-			var keys = ppt.keySet().toArray();
-			var queryString = [];
-			for(var i=0 ; i<keys.length ; i++){
-				queryString.push(keys[i]+"="+req.getParameter(keys[i]));
+			req.setAttribute("downloadtype",ProtectionType.READ_ONLY);
+			req.setAttribute("method", "downloadFormWord");
+			req.setAttribute("ext", ext);
+			if(isInWorkflow){
+				req.setAttribute("method", "downloadwiattach");
+				req.setAttribute("savemethod", "saveWordInWI");
 			}
-			println("querystring:"+queryString.join("&"));
-			return "redirect:/meta/LAWCONT/others/word/wordedit.action?mth=downloadFormWord&ext="+ext+"&"+queryString.join("&");
+//			return "redirect:/meta/LAWCONT/others/word/wordedit.action?"+queryString.join("&");
+			return "forward:/meta/LAWCONT/others/word/wordedit.action";
 		}else if(ext == "pdf"){
+			println("showpdf");
 			res.setContentType(contentType);
 			showPdf(res, myOut);
 		}else if(contentType.indexOf("image")>-1){
+			println("image:"+contentType);
 			res.setContentType(contentType);
 			showPdf(res, myOut);
 		}else{
@@ -193,6 +202,13 @@ function getContractInputStreamByDraft(task, id, myOut, attachmentObj){
 			attachmentObj["name"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_FILENAME);
 //			attachmentObj["updateTime"] = String.valueOf(attachment.getUpdateTime());
 			attachmentObj["contentType"] = rs.getString(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_CONTENTTYPE);		
+		}
+		
+		var input = rs.getBinaryStream(CIMetaConsts.SYS_PREFIX + CIMetaConsts.FIELD_ATTACHMENT);
+		try{
+			IOUtils.copy(input, myOut);
+		}finally{
+			IOUtils.closeQuietly(input);
 		}
 	}
 	finally {
