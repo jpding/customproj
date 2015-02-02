@@ -69,6 +69,9 @@
 		},500)		
 	}
 
+	/**
+	 * 下面的 method、savemethod、ext 等参数是在wordedit.ftl中定义的 
+	 */
 	WSOffice.prototype._initDom = function() {
 		this.$plugin = this.basedom().find(".sz-ci-wsoffice-plugs");
 		this.aodControl = this.$plugin[0];
@@ -116,7 +119,11 @@
 		    	var param = saveParams[i];
 		    	saveArgs[param[0]] = param[1];
 		    }
-		    saveArgs["method"] = "uploadWord";
+		    
+		    if(!savemethod){
+		    	savemethod = "uploadWord";
+		    }
+		    saveArgs["method"] = savemethod;
 		    saveArgs["url"]    = WSOffice.DOWNLOADURL;
 		    
 		    this.editOffice.getSaveArgs = function() {
@@ -313,6 +320,24 @@
 		}
 		
 		this.unLock();
+	}
+	
+	/**
+	 * 设置菜单隐藏显示
+	 *  MNU_NEW                0x01
+     *  MNU_OPEN               0x02
+     *  MNU_CLOSE              0x04
+     *  MNU_SAVE               0x08
+     *  MNU_SAVEAS             0x16
+     *  MNU_PGSETUP            0x64
+     *  MNU_PRINT              0x256
+     *  MNU_PROPS              0x32
+     *  MNU_PRINTPV            0x126
+	 */
+	WSOffice.prototype.setMenuDisplay = function(menuId, b){
+		if(this.aodControl){
+			this.aodControl.SetMenuDisplay(menuId, b);
+		}
 	}
 	
 	/**
