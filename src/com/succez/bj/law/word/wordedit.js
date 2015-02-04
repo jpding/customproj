@@ -103,6 +103,7 @@ function execute(req, res){
 		res.attr("namespace",req.namespace);
 	}
 	
+	print(req.getAttribute("facttable"));
 	/**
 	 * 如果非IE浏览器，那么直接下载word
 	 */
@@ -110,6 +111,15 @@ function execute(req, res){
 		directDownloadWord(req, res);
 		return ;
 	}
+	
+//	var hideToolbar =  req.getAttribute("facttable");
+	
+//	print(req.hideToolbar);
+//	if(hideToolbar == true){
+	//	res.attr("hideToolbar", true);
+//	}else{
+//		res.attr("hideToolbar", false);
+//	}
 	
 	/**
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
@@ -321,6 +331,13 @@ function writeWord(input, res, downloadtype, is2003){
 function writeWordByInputStream(input, out, downloadtype, is2003){
 	println("writeWordByInputStream:downloadtype:"+downloadtype);
 	var doc = new Document(input);
+	/**
+	 * TODO 临时加的代码，为实现电子印章
+	 */
+	if(doc.hasMacros()){
+		doc.protect(-1);
+		doc.save(out,SaveFormat.DOC);
+	}
 	writeWordByDoc(doc, out, downloadtype, is2003);
 }
 
@@ -1552,4 +1569,3 @@ function updateWIAttachment(id, content){
 	ds.update("update ACT_GE_BYTEARRAY set BYTES_ = ? where ID_ = ?", [content, content_id]);
 	return "success";
 }
-
