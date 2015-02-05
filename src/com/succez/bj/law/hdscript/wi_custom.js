@@ -383,7 +383,12 @@ function hiddenWIButtons($flow, buttons){
 		htwb.editAttachmentAsDoc(callback);
 	}
 	
-	
+	/**
+	 * 2015-2-5 对于浮动表的数据，以这种形式加入
+	 * table1_a2:xxx;table1_b2...
+	 * table1_a3:xxx;table1_b3...
+	 * 便于生成范本，不自动根据浮动表生成
+	 */
 	upload.getFillFormDatas = function($form){
 		var allcompdatas = $form.getFormData()["componentsdata"];
 		var compdatas = $.grep(allcompdatas, function(n, i){
@@ -395,7 +400,30 @@ function hiddenWIButtons($flow, buttons){
 			var vv = compData.getSubmitValue();
 			result[compData.compinf.dbfield] = vv;
 		}
+		/**
+		 * 加入浮动表格的数据
+		 */
+		var floatareas = $form.getFormData().floatareas;
+		for(var i=0; floatareas && i<floatareas.length; i++){
+			var farea = floatareas[i];
+			upload.getFillFormDatas_floatAreas(farea, result);
+		}
 		return result;
+	}
+	
+	upload.getFillFormDatas_floatAreas = function(floatarea, result){
+		var rows = floatarea.getVisibleRows();
+		for(var i=0; rows && i<rows.length; i++){
+			var row = rows[i];
+			var datas = row.getComponentDatas();
+			for(var j=0; datas && j<datas.length; j++){
+				var data = datas[j];
+				var cellName = data.compinf.name.replaceAll(/\./,'_');
+				var realName = cellName.substring(0, (cellName.length-1))+(parseInt(cellName.charAt(cellName.length-1))+i);
+				var vv = data.getTxt();
+				result[realName.toUpperCase()] = vv;
+			}
+		}
 	}
 	
 	/**
