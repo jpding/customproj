@@ -80,6 +80,16 @@ com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
    4. 合同起草时
 	  1. 范本合同，只能修改  窗体域
 	  2. 自由合同，全面能修改
+	  
+
+2015-2-5 工作流中操作word功能说明：
+    1.直接打开表单中的word，分为起草状态和审批状态
+      a.合同起草状态，范本合同是只读模式，自由合同是直接导出即可
+      b.审批状态，如果是范本合同，在部门内部审批，还是只读模式，反之则是修订模式
+      c.非合同表单，上传的word，都是直接打开，不经过任何转换，但不提供word的保存功能(那就还是只读打开)
+    2.打开报表中的word文件，报表中的word是来自于采集表单，通过showfile.action进行访问，实际上是访问的wordedit.action
+    3.工作流中上传的附件，以修订模式打开	  
+	  
  */
 
 function main(args){
@@ -103,7 +113,6 @@ function execute(req, res){
 		res.attr("namespace",req.namespace);
 	}
 	
-	print(req.getAttribute("facttable"));
 	/**
 	 * 如果非IE浏览器，那么直接下载word
 	 */
@@ -125,6 +134,19 @@ function execute(req, res){
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
 	 */
 	res.attr("ignoreChromeFrame", "true");
+	
+	var ext = req.getAttribute("ext");
+	if(!ext){
+		req.setAttribute("ext","doc");
+	}
+	
+	var enumNames = req.getAttributeNames();
+	while(enumNames.hasMoreElements()){
+		var attrName = enumNames.nextElement();
+		res.attr(attrName, req.getAttribute(attrName));
+	}
+	
+	/*
 	var ext = req.getAttribute("ext");
 	if(!ext){
 		ext = "doc";
@@ -140,7 +162,7 @@ function execute(req, res){
 	if(savemtd){
 		res.attr("savemethod", savemtd);
 	}
-	
+	*/
 	return "wordedit.ftl";
 }
 
@@ -331,13 +353,6 @@ function writeWord(input, res, downloadtype, is2003){
 function writeWordByInputStream(input, out, downloadtype, is2003){
 	println("writeWordByInputStream:downloadtype:"+downloadtype);
 	var doc = new Document(input);
-	/**
-	 * TODO 临时加的代码，为实现电子印章
-	 */
-	if(doc.hasMacros()){
-		doc.protect(-1);
-		doc.save(out,SaveFormat.DOC);
-	}
 	writeWordByDoc(doc, out, downloadtype, is2003);
 }
 
@@ -360,6 +375,11 @@ function writeWordByDoc(doc, out, downloadtype, is2003){
 	doc.save(out,SaveFormat.DOC);
 }
 
+/**
+ * 
+ */
+function getOpenWordType(){
+}
 
 /**
  * 点击保存时，保存先前打开的word文件

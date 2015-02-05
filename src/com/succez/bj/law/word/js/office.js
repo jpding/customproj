@@ -228,13 +228,20 @@
 		/**
 		 * word装入完成以后，如果该word有锁定的需求，那么需要显示锁定提示信息
 		 */
-		
- 		this.showLockInfo();
+		this.loadFinished();
 		
 		var editargs = this.editOffice.getArgs();
 		if (editargs && editargs.initPlugin) {
 			editargs.initPlugin(this.aodControl);
 		}
+	}
+	
+	/**
+	 * word装入完成时调用，例如：冲突信息的显示，按钮控制等
+	 */
+	WSOffice.prototype.loadFinished = function(){
+		this.showLockInfo();
+		
 	}
 	
 	/**
