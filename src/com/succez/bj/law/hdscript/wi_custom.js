@@ -464,6 +464,7 @@ function hiddenWIButtons($flow, buttons){
 			formdatas : JSON.stringify(upload.getFillFormDatas($form)),
 			success		      : function(info) {
 				var newInfo = $form.getFormData().getAttachment(compid);
+				var compObj = $form.getComponent(compid);
 				compObj.setAttachmentValue(newInfo);
 				/*在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit*/
 				if(!noNeedEdit){
