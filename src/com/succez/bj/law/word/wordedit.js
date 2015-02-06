@@ -357,29 +357,33 @@ function writeWordByInputStream(input, out, downloadtype, is2003){
 }
 
 function writeWordByDoc(doc, out, downloadtype, is2003){
-	/**
-	 * 对下载的word打验证标记
-	 */
-	//doc.getVariables().add(PROP_CHECKVALID, "1");
-	
-	if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
-		doc.setTrackRevisions(true);
+	/*
+	* 如果是审签单的话，那么直接输出，不需要经过其他处理	----wangyg
+	*/
+	if (isSQD(doc) == 'true'){
+		print("doc is not protect and isSQD = ");
+		doc.save(out,SaveFormat.DOC);
+	}else{
+		/**
+		 * 对下载的word打验证标记
+		 */
+		//doc.getVariables().add(PROP_CHECKVALID, "1");
+		
+		if(downloadtype == ProtectionType.ALLOW_ONLY_REVISIONS){
+			doc.setTrackRevisions(true);
+		}
+		doc.protect(downloadtype);
+		/**
+		 * 2003的格式，有可能在2010下打开有问题，故目前都设置成2007的格式，不在保存成2003的格式
+		 * 
+		 * 2005-1-10 由于范本使用限制编辑功能，参考了帮助文档，只有doc和OOXML两种格式才支持
+		 */
+		//doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
+		print("doc has protected and downloadType == " + downloadtype);
+		doc.save(out,SaveFormat.DOC);
 	}
-	doc.protect(downloadtype);
-	/**
-	 * 2003的格式，有可能在2010下打开有问题，故目前都设置成2007的格式，不在保存成2003的格式
-	 * 
-	 * 2005-1-10 由于范本使用限制编辑功能，参考了帮助文档，只有doc和OOXML两种格式才支持
-	 */
-	//doc.save(out,is2003 ? SaveFormat.DOC:SaveFormat.DOCX);
-	doc.save(out,SaveFormat.DOC);
 }
 
-/**
- * 
- */
-function getOpenWordType(){
-}
 
 /**
  * 点击保存时，保存先前打开的word文件
@@ -752,7 +756,7 @@ function saveDraft(req, res){
 	var formName = req.formName;
 	var compid   = req.compid;
 	var id       = req.id;
-	println("====saveDraft:resid="+resid+";datahierarchies="+datahierarchies);
+	println("====saveDraft:resid="+resid+";datahierarchies="+datahierarchies+";compid="+compid+";formName="+formName);
 	
 	var ciattachmentstr = req.ciattachment;
 	var ciattachment = jsonMapper.readValue(ciattachmentstr, java.util.Map);
@@ -792,7 +796,8 @@ function saveDraft(req, res){
 			println("formDataStr:"+formDataStr);
 		}
 		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
-		insertTemplateBefore(file, formData);
+		
+		insertTemplateBefore(file, formData,"sqdwj"==compid);
 		
 		var ins = new FileInputStream(file);
 		try {
@@ -833,10 +838,13 @@ function getDataHierarchiesByUid(taskPath, dwTable, uid){
  * 1.插入范本标识
  * 2.把表单内容填入到word中
  * @formDatas key全大写
+ * 加上一个参数：isSQD，是否为审签单附件，为了兼容电子签章，如果是审签单的话，那么服务器端不做任何保护措施
+ *
  */
-function insertTemplateBefore(file, formDatas){
+function insertTemplateBefore(file, formDatas, isSQD){
 	var doc = new Document(file);
 	doc.getVariables().add(PROP_TEMPLATE, "1");
+	doc.getVariables().add(PROP_ISSQD,isSQD)
 	
 	println("insert template sign:"+file);
 	
@@ -1189,6 +1197,7 @@ function getCITableFieldValue(task, dwTable, dataperiod, datahierarchies, fieldN
 
 var PROP_TEMPLATE = "succezdoctemplate";
 var PROP_CHECKVALID = "succezwordvalid";
+var PROP_ISSQD = "succezdocsqd"; //如果是审签单文件，那么服务器端除了替换标签以外，不进行任何其他处理
 
 /**
  * 判断是否是范本合同，直接从文档流里面读出，在插入到临时表时，就记录上一个特殊的标记
@@ -1197,6 +1206,13 @@ function isTemplateContract(doc){
 	var tpl = doc.getVariables().get(PROP_TEMPLATE);
 	println("=========tpl======="+tpl);
 	return tpl == "1";
+}
+
+
+function isSQD(doc){
+	var issqd = doc.getVariables().get(PROP_ISSQD);
+	println("=========isSqd======="+issqd);
+	return issqd;
 }
 
 function getDraftAttachmentInfQuery(id, draft) {

@@ -195,6 +195,14 @@
 		this.openUrl = url;
 		
 		/**
+		 * 审签单，做特殊处理，如果compid=sqdwj那么就自动隐藏
+		 */
+		var sqd = sz.utils.getParameterOfUrl("compid", this.openUrl);
+		if(!sqd){
+			sqd = sz.utils.getParameterOfUrl("fileContentField", this.openUrl);
+		}
+		
+		/**
 		 * 20140928 guob
 		 * 问题现象：采集草稿中在有contextpath的情况下编辑word会出现“您要查看的页面不存在”的问题
 		 * 问题原因：由于从采集中获取的打开的url中已经带有ctx，之前又加上了一次ctx，导致有两个ctx
@@ -225,23 +233,22 @@
 		
 		this.aodControl.Open(url, null, this.docType);
 		
+		
+		if(sqd && sqd.toLowerCase() == "sqdwj"){
+			$(".sz-ci-div-title").css("display","");
+			this.aodControl.Toolbars=false;
+		}
+		
 		/**
 		 * word装入完成以后，如果该word有锁定的需求，那么需要显示锁定提示信息
 		 */
-		this.loadFinished();
+		
+ 		this.showLockInfo();
 		
 		var editargs = this.editOffice.getArgs();
 		if (editargs && editargs.initPlugin) {
 			editargs.initPlugin(this.aodControl);
 		}
-	}
-	
-	/**
-	 * word装入完成时调用，例如：冲突信息的显示，按钮控制等
-	 */
-	WSOffice.prototype.loadFinished = function(){
-		this.showLockInfo();
-		
 	}
 	
 	/**
