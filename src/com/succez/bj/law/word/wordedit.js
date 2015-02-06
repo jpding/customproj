@@ -291,6 +291,7 @@ function makecontract(req, res){
 		if(doc.hasMacros()){
 			input.reset();
 			IOUtils.copy(input,myOutput);
+			return "";
 		}else{
 			var formData = jsonMapper.readValue(formDataStr, java.util.Map);
 			makeTemplateContract(doc, formData);
