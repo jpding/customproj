@@ -225,7 +225,15 @@ function downloadword(req, res){
 }
 
 /**
- * 生成合同文本，返回对应的合同附件信息
+ * 2015-2-5 生成合同文本，返回对应的合同附件信息，生成的合同文本始终是存储在草稿中，当保存表单时，把草稿中的附件存储到表单中
+ * 
+ * 2015-2-6 在生成审签单时，需要根据表单里面的附件重新生成，并且把内容重新回写到当前表单中，调用该方法时会自动把替换相关数据
+ *          并把生成好的word写入到草稿表中，点击的保存的时候，会分两种情形:
+ *          1.未提交审批的表单，保存时数据会写入到草稿表中
+ *          2.提交审批后的表单，数据会直接写入到表单中     
+ *          
+ *          对于审签单目前存在两个问题：
+ *          
  * @param {} req
  * @param {} res
  */
@@ -272,10 +280,22 @@ function makecontract(req, res){
 		if(ISDEBUG){
 			println("formDataStr:"+formDataStr);
 		}
-		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
-		makeTemplateContract(doc, formData);
+		/**
+		 * 如果包含有电子签章，是不能替换里面的内容的，替换会直接报错，直接把原始文件下载下来
+		 *   1.This document contains macros (VBA project) and you are attempting to save it in a Macro-Free format. 
+		 *     Such document will be invalid if created. You need to either save it in a Macro-Enabled format (.DOCM or .DOTM) 
+		 *     or remove macros before saving using the Document.RemoveMacros method.)
+		 */
 		var myOutput = new MyByteArrayOutputStream();
-		doc.save(myOutput, SaveFormat.DOCX);
+		
+		if(doc.hasMacros()){
+			input.reset();
+			IOUtils.copy(input,myOutput);
+		}else{
+			var formData = jsonMapper.readValue(formDataStr, java.util.Map);
+			makeTemplateContract(doc, formData);
+			doc.save(myOutput, SaveFormat.DOCX);
+		}
 		var filename = attachmentObj["name"];
 		var contentType = "application/msword";
 		var inputStream = myOutput.asInputStream();
