@@ -312,6 +312,11 @@ function hiddenWIButtons($flow, buttons){
 				}
 				
 				/**
+				 * 读取草稿时，让插件知道是读取的那个控件的草稿，便于当时审价单时，隐藏或者显示菜单栏
+				 */
+				attachmentInf.url = upload.setParameterOfUrl("compid", compid, attachmentInf.url);
+				
+				/**
 				 * 在下载word时，加入一些特殊的参数，
 				 * 例如：
 				 */
@@ -397,7 +402,7 @@ function hiddenWIButtons($flow, buttons){
 		var result = {};
 		for(var i=0; compdatas && i<compdatas.length; i++){
 			var compData = compdatas[i];
-			var vv = compData.getSubmitValue();
+			var vv = compData.getTxt(); //获取到的value不是想要的，例如，供应商可能获取到的供应商代码
 			result[compData.compinf.dbfield] = vv;
 		}
 		/**
@@ -418,10 +423,12 @@ function hiddenWIButtons($flow, buttons){
 			var datas = row.getComponentDatas();
 			for(var j=0; datas && j<datas.length; j++){
 				var data = datas[j];
-				var cellName = data.compinf.name.replaceAll(/\./,'_');
-				var realName = cellName.substring(0, (cellName.length-1))+(parseInt(cellName.charAt(cellName.length-1))+i);
-				var vv = data.getTxt();
-				result[realName.toUpperCase()] = vv;
+				if(data && data.compinf &&  data.compinf.name){
+					var cellName = data.compinf.name.replaceAll(/\./,'_');
+					var realName = cellName.substring(0, (cellName.length-1))+(parseInt(cellName.charAt(cellName.length-1))+i);
+					var vv = data.getTxt();
+					result[realName.toUpperCase()] = vv;
+				}
 			}
 		}
 	}
