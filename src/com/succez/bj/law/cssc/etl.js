@@ -32,9 +32,6 @@ function main(args){
 	
 	var rq = tostr(curtime, "yyyymmdd");
 	var xs = tostr(curtime, "H");
-	
-	throw new Error(rq + " xx " + xs);
-	
 	startEtl(DS_NAME, rq, xs, "A","T");
 	//testLoadData();
 }
