@@ -233,6 +233,12 @@ function downloadword(req, res){
  *          2.提交审批后的表单，数据会直接写入到表单中     
  *          
  *          对于审签单目前存在两个问题：
+ *          1.如果有电子签章后，数据不能在初始化的，只能存储为docm，不能存储为docx
+ *          2.如果部长打开后，签章保存后，关闭word后，在打开，仍然是草稿里面的内容，没有签章数据，原因是签章数据保存在表单中，而没有直接
+ *            保存草稿中。
+ *            
+ *         解决：
+ *          1.如果含有宏的word，那就不用初始化，直接返回word源文件，并且也不用存储到草稿中   
  *          
  * @param {} req
  * @param {} res
@@ -671,12 +677,14 @@ function downloadFormWord(req, res){
 				downloadType = -1;
 			}else if(state=="20"){
 				downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
-			} else if(state == "-1"){
+			}else if(state == "-1"){
 				/**
 				 * 不存在状态字段，由于合同范本里面设置了限制编辑，并且是只读状态是可以编辑的，这样就导致浏览范本时，会看到
 				 * 那些可编辑项是可以填写的，目前这里设置成只能填写表单域，而范本里面是没有表单域的，这样就是只读状态了
 				 */
 				//downloadType = ProtectionType.READ_ONLY;
+				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
+			}else if(StringUtils.isNotEmpty(state)){
 				downloadType = ProtectionType.ALLOW_ONLY_FORM_FIELDS;
 			}
 			println("downloadFormWord:downloadType=="+downloadType);
