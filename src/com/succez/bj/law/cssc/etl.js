@@ -240,7 +240,7 @@ function calcExps2(result, srcData, expZzs, constData){
 		if(!srcData[i]){
 			continue;
 		}
-		var paramName = StringUtils.trim(srcData[i][0]); 
+		var paramName = StringUtils.upperCase(StringUtils.trim(srcData[i][0])); 
 		paramNHL[paramName] = srcData[i][1]; 
 		paramZBL[paramName] = srcData[i][2];
 		paramJG[paramName] = srcData[i][3];
@@ -297,12 +297,16 @@ function calcExp(expZz, context){
 	return exp.evaluateDouble(context);
 }
 
+/**
+ * 2015-2-10 名称不需要大小写，全部转换为大写处理
+ * @param {} params
+ */
 function ExpContext(params){
 	this.params = params;
 }
 
 ExpContext.prototype.getVar = function(name){
-	var d = this.params[name];
+	var d = this.params[StringUtils.upperCase(name)];
 	if(d != null){
 		return new ExpVarObject(name, ExpReturnTypes.FLOAT_TYPE, d);
 	}else{
@@ -323,7 +327,7 @@ function getLastTime(curtime){
 }
 
 function testExp(){
-	var params = {"A":12,"B":4,"C":5};
+	var params = {"a":12,"B":4,"C":5};
 	var oContext = createExpContext(params);
 	if(calcExp("(A+b)*c", oContext)!=80){
 		throw new Error("表达式计算错误!");
