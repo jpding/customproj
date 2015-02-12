@@ -455,13 +455,21 @@ function hiddenWIButtons($flow, buttons){
 			
 			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
 			$.post(url, data, function(info){
-				compObj.setAttachmentValue(info);
+				/**
+				 * 2015-2-6
+				 * 以前只考虑了起草状态下的，根据范本生成合同文本，而电子签章是直接根据表单里面的附件直接
+				 * 生成，如果服务器端返回的是空，那么就不设置附件信息，因为表单上附件本来就有，故不用再次生成
+				 */
+				if(info){
+					compObj.setAttachmentValue(info);
+				}
 			    upload.editAttachmentAsDoc($form, compid,callback);
 			});
 		}else{
 			/**
 			 * 1.从范本里面取出合同，目前打开合同，就会自动生成，这里就不用在生成合同
 			 * TODO
+			 * 建议在外面调用 upload.uploadTemplateContract 方法
 			 */
 		}
 	}
