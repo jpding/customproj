@@ -121,14 +121,11 @@ function execute(req, res){
 		return ;
 	}
 	
-//	var hideToolbar =  req.getAttribute("facttable");
+	var signature =  req.getAttribute("signature");
+	res.attr("signature", signature);
 	
-//	print(req.hideToolbar);
-//	if(hideToolbar == true){
-	//	res.attr("hideToolbar", true);
-//	}else{
-//		res.attr("hideToolbar", false);
-//	}
+	var hideToolbar =  req.getAttribute("hideToolbar");
+	res.attr("hideToolbar", hideToolbar);
 	
 	/**
 	 * 插件只能在IE下打开，假如安装了chromeframe，那么应该在这里忽略谷歌插件
@@ -145,24 +142,6 @@ function execute(req, res){
 		var attrName = enumNames.nextElement();
 		res.attr(attrName, req.getAttribute(attrName));
 	}
-	
-	/*
-	var ext = req.getAttribute("ext");
-	if(!ext){
-		ext = "doc";
-	}
-	res.attr("ext", ext);
-	
-	var mtd = req.getAttribute("method");
-	if(mtd){
-		res.attr("method", mtd);
-	}
-	
-	var savemtd = req.getAttribute("savemethod");
-	if(savemtd){
-		res.attr("savemethod", savemtd);
-	}
-	*/
 	return "wordedit.ftl";
 }
 
