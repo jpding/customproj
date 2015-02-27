@@ -1,4 +1,5 @@
 $.extend({
+     //加载一些必要的js和css文件到系统中
      loadJsCss : function(file) {
           var files = typeof file == "string" ? [file] : file;
           var ctx = sz.sys.ctx();
@@ -19,69 +20,11 @@ $.extend({
      },
 	  
 	 /**
-	 * 在上报时，先检查是否已经通过审核，如果没有通过则弹出审核提示信息
+	 * 在上报时，先检查是否已经通过审核，如果没有通过则弹出审核提示信息，注意这里的“临时保存”的时候是关闭了数据审核的。
 	 * isSave true|false
 	 */
 	 checkSubmitAudit:function($flow, formName, isSave, callback){
-		var fillforms = $flow.getForm();
-		var dataMgr = fillforms.datamgr;
-		fillforms.endEdit({
-			success:function(){
-					dataMgr.audit({success:function(){
-						if(isSave){
-							fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(submitArgs,instArgs){
-								var funcname = "save_"+formName;
-								if($.wicallbacks && $.wicallbacks[funcname]){
-									$.wicallbacks[funcname]();
-								}else{
-									/**
-									 * 保存按钮执行回调函数分以下几种情况：
-									 * 1.弹出表单对话框，一般用于录入明细信息，例如：纠纷进展
-									 * 2.页面显示，一般就是录入表单信息，有提交、有保存，这里要跳转到维护页面，在工作流脚本中
-									 *   设置回调
-									 */
-									if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
-										if(sz.custom && sz.custom.wi && sz.custom.wi.on_callback){
-											sz.commons.CheckSaved.getInstance().setModified();
-											sz.custom.wi.saveFormCallback();
-										}else{
-											sz.commons.CheckSaved.getInstance().setModified();
-											window.location.reload();
-										}
-									}else{
-										sz.commons.CheckSaved.getInstance().setModified();
-										window.location.reload();
-									}
-									
-								}
-							}});
-						}else{
-							var failLen = fillforms.getAllFailAuditResult().length;
-							if(failLen > 0){
-								fillforms.showAuditResults();
-								return;
-							}
-							$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
-								var funcname = "submit_"+formName;debugger;
-								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
-									if(sz.custom && sz.custom.wi && sz.custom.wi.on_submitcallback){
-										sz.commons.CheckSaved.getInstance().setModified();
-										sz.custom.wi.submitFormCallback();
-									}
-								}else{	
-									if($.wicallbacks && $.wicallbacks["submit_"+formName]){
-										$.wicallbacks[funcname](result);
-									}else{
-										sz.commons.CheckSaved.getInstance().setModified();
-										window.location.reload();
-									}
-								}
-							}});
-						}
-					}
-				});
-			}
-		});
+		
 	},
 	
 	addCallbacks : function(key, func){
@@ -93,9 +36,113 @@ $.extend({
 	}
 });
 
+
+function _doForm_SJ($flow){
+	var fillForm = $flow.getForm();
+	var nodealias = $flow.params.form;
+	if(nodealias =="JBRQR" || nodealias =="CGYQR"){
+		fillForm.datamgr.getFormsData().setModified(true);
+		var completeBtn =  $flow.getButton('complete');
+		if (completeBtn){
+			completeBtn.setCaption("确定");
+		}
+		
+		var rejectonestepBtn =  $flow.getButton('rejectonestep');
+		if(rejectonestepBtn){
+			rejectonestepBtn.setCaption("退回重审");
+		}
+	}
+	
+	if(["QHBFGLDSH","ZKJSSH","BZSH","FZJJSSH","ZJLZLSH","GSFGLDSH","GSZJLSH"].indexOf(nodealias)!=-1){
+		$flow.addButton({id:'signer',caption:"电子签章",icon:"sz-app-icon-add2",next:"",click:function(event){
+			var $form = $flow.getForm().getCurrentForm();
+			sz.custom.uploadSQD($form,"sqdwj",{initPlugin:function(plugin){/*plugin.Toolbars=false*/}});
+		}});
+	}
+	
+	/*如果是综合类审价或者船舶物资类审价的选定供应商环节，那么需要设置表单的修改状态，并且加载审签单文件到表单中*/
+	if ("XCSJJL" == nodealias || "SJH" == nodealias){
+		fillForm.datamgr.getFormsData().setModified(true);
+		var compid = "sqdwj";
+		var curForm = $flow.getForm().getCurrentForm();
+		var compObj = curForm.getComponent(compid);
+		var val = compObj.getAttachmentValue();
+		if (val == null){
+			var uid = "XCSJJL" == nodealias ? "5ebd35ea67c34915b0d945b8ca3bacc3" : "a2c7d26415b645ad8a60b29398bb8c82";
+			var resPath = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/SQDGL";
+			sz.law.uploadTemplateContract(curForm, resPath , "HZ_SQD", "ATTACHMENT1", "FN0", uid, compid, null ,true);
+		}
+	}
+	
+	/*在分管领导审核的时候需要设置表单的修改状态默认为被修改，这样的话在用户点击批准的时候才会提示有哪些必填项没有填写*/
+	if(nodealias =="FGLDSH"){
+ 		fillForm.datamgr.getFormsData().setModified(true);
+	}
+}
+
 /**
-**  在初始化表单的时候执行的通用事件，在起草的时候添加“送审”和“临时保存按钮”
-**
+ *	点击签章的时候，自动生成签章文件，并存储到表单的相关附件中，该函数为通用的处理函数
+ */
+sz.sys.namespace("sz.custom").uploadSQD = function($form, compid,callback) {
+	var compObj = $form.getComponent(compid);
+	var val = compObj.getAttachmentValue();
+	if (val != null){
+		sz.law.makeTemplateContract($form, compid,callback,true);
+	}
+}
+
+function func_dofrom(){
+	return this;
+}
+
+/*
+	处理综合审价的浏览器特殊脚本
+	1、经办人确认的时候，把按钮改成“确定”和“退回重审”
+	2、在审价会通过审价之后，显示电子签章按钮
+*/
+func_dofrom.prototype._doForm_ZHSJ = function($flow){
+	_doForm_SJ($flow);
+}
+
+func_dofrom.prototype._doForm_SJ_CBWZL = function($flow){
+	_doForm_SJ($flow);
+}
+
+
+//func_doform.prototype._doForm_HZ_CONT_INFO = function($flow){
+//	var fillForm = $flow.getForm();
+//	var nodealias = $flow.params.form;
+//	if( "BZSH" == nodealias){
+//		fillForm.datamgr.getFormsData().setModified(true);
+//		var cont_type = fillForm.getValue("CONT_SUB_TYPE");
+//		var compid = "sqdwj";
+//		var curForm = $flow.getForm().getCurrentForm();
+//		var compObj = curForm.getComponent(compid);
+//		var val = compObj.getAttachmentValue();
+//		if (val == null){
+//			var uid = "";
+//			if ([].indexOf(cont_type)!=-1){
+//				 "XCSJJL" == nodealias ? "5ebd35ea67c34915b0d945b8ca3bacc3" : "a2c7d26415b645ad8a60b29398bb8c82";
+//			}
+//			var resPath = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/SQDGL";
+//			sz.law.uploadTemplateContract(curForm, resPath , "HZ_SQD", "ATTACHMENT1", "FN0", uid, compid, null ,true);
+//		}
+//	}
+//}
+
+/*处理授权委托中需要系统设置为默认修改的部分，在授权委托管理员审核和授权委托管理员确认环节需要处理*/
+func_dofrom.prototype._doForm_AUTH_ENTR = function($flow){
+	var nodealias = $flow.params.form;
+	/**
+		授权委托管理员需要上传文本，所以必须一开始就设置表单为修改过的状态
+	**/
+	if(nodealias == "SQWTGLYSH" || nodealias == "SQWTGLYQR"){
+		fillForm.datamgr.getFormsData().setModified(false);
+	}	
+}
+/**
+**  在初始化表单的时候执行的通用事件，在起草的时候添加“送审”和“临时保存”按钮，并隐藏其他的按钮，在送审之后，统一弹出
+* 链接中所示的报表，报表中可以查看“送审流程”等
 ***/
 function oninitwiform($flow){
 	hiddenButtons($flow);
@@ -104,44 +151,314 @@ function oninitwiform($flow){
 	 * 忽略修改未保存提示，在IE8下打开一个合同表单后，每次切换，都有提示，特别繁琐。
 	 */
 	sz.commons.CheckSaved.getInstance().setIgnore(true);
-	
-	if($flow.form && ($flow.form == "STARTFORM")){
-		var form = $flow.getForm();
-		var formName = form.getCurrentFormName();
-		
-		$flow.addButton({id:'wisubmit',caption:"送审",icon:"sz-app-icon-run",next:"cancel",click:function(event){
-			$.checkSubmitAudit($flow, formName, false);	debugger;			
-		}});
-		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
-			$.checkSubmitAudit($flow, formName, true);
-		}});
-		
-		$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(result){
-			sz.commons.CheckSaved.getInstance().setModified();
-			if(window.parent && $(window.parent.document).find("iframe").length>0){
-				var instid = result != null ? result["instanceid"] : "";
-				var wiresid  = $flow.resid;
-				var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
-				var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
-				var url = "/meta/LAWCONT/analyses/maintain/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
-				sz.law.showReportDlg(url, dlgParams);
-			}
-		});
-	}
+	sz.commons.CheckSaved.getInstance().off();
 	
 	/**
 	 * 重载点击事件，点击的时候直接预览内容
+	 * 另外如果有别名的话，需要将别名设置进去
 	 */
 	if($flow.form){
+		var fillForm = $flow.getForm();
 		var form = $flow.getForm().getCurrentForm();
 		sz.ci.custom.uploadattachment.refactorAllAttachmentClick(form);
+		var formName = form.name;
+		
+		//如果是已经审批通过的表单，那么没必要做其他设置
+		var state = fillForm.getValue("hide_status_",formName);
+		if(state != '10' && state != '20') return;
+		
+		//如果需要设置别名，那么需要将别名设置进去，这样就避免了每个工作流上去设置一遍 ---by wangyg
+		var nodeAliaObj = form.getComponent("nodealias");
+		if(nodeAliaObj){
+			var nodealias= $flow.params.form;
+			fillForm.setValue(nodealias,"nodealias",formName.toUpperCase());
+		}
+		
+		var formfunc = new func_dofrom();
+		
+		var funcName = "_doForm_"+formName;
+		if(formfunc[funcName]){
+			formfunc[funcName]($flow,nodealias);
+		}
+		
+		if($flow.form == "STARTFORM"){
+			_doinitwiform_STARTFORM($flow);
+		}
 	}
-				   
-	if (typeof(window._hzinitformcallback) == "function"){
-		window._hzinitformcallback($flow)		   
+	
+	
+     
+	/*没必要加上回调的，本身就会调用*/ 
+}
+
+function func_doStartFrom(){
+	return this;
+}
+
+/**
+* 处理合同送审时候的流程浏览器脚本
+* 合同起草表单打开的时候需要进行的处理如下：
+* 1、如果有范本，那么初始化范本ID进去
+* 2、如果有审价，那么初始化审价ID进去
+* 3、
+*/
+func_doStartFrom.prototype._doStartForm_HZ_CONT_INFO = function($flow){
+	/*
+	  如果将合同保存成草稿，那么合同就有了businesskey，此时不该再做其他操作
+	  例如，用范本起草合同的时候，会通过URL传输一个范本UID进来，而保存草稿之后
+	  再通过草稿起草，URL里面就没有范本UID了，会造成系统误判为非范本合同
+	*/
+	if (!$flow.businesskey){
+		var utils = sz.utils;
+		var fb_uid = utils.getParameter("fb_uid");
+		var sjuid = utils.getParameter("sjuid");
+		var gcbh = utils.getParameter("gcbh");
+		var fillforms = $flow.getForm();
+		if (fb_uid && fb_uid != ""){
+			fillforms.setValue(fb_uid,"fb_uid","HZ_CONT_INFO");
+			fillforms.setValue("1","iscontractmodel","HZ_CONT_INFO");
+			
+			//初始化范本进去
+			if(sz.ci && sz.ci.custom && sz.ci.custom.uploadattachment){
+				var curForm = $flow.getForm().getCurrentForm();
+				sz.ci.custom.uploadattachment.uploadAndEditContractByModel(curForm, "htwb",null,true)
+			}
+		}else{
+			fillforms.setValue("0","iscontractmodel","HZ_CONT_INFO");
+		};	
+		
+		//初始化审价id进去
+		if(sjuid){
+			var curForm = $flow.getForm().getCurrentForm();
+			setTimeout(function(){
+				var curForm = $flow.getForm().getCurrentForm();
+				curForm.getComponent("sj_uid").val(sjuid);
+				fillforms.setValue(gcbh,"proj_num","HZ_CONT_INFO");
+			},500)	
+		};
+	}
+	
+	/*
+		替代掉以前的保存回调机制，这里保存之后要打开合同草稿箱，如果没有覆盖，那么刷新的是本页面。
+	*/
+	$.addCallbacks("save_"+$flow.getForm().getCurrentFormName(), function(){
+		sz.commons.CheckSaved.getInstance().setModified();
+		if(window.parent && $(window.parent.document).find("iframe").length>0){
+			var url = sz.sys.ctx("/meta/LAWCONT/analyses/index/newhome/showcontent.action?path=269582365&form=MAINTAIN")
+			window.parent.navTab.openTab("custom_24",url ,{title:"合同草稿箱", fresh:true, external:true})
+		}
+	});
+}
+
+
+/*处理合同签订表单的起草事件，需要做如下处理：
+1：只显示提交按钮，因为合同签订是事后登记，内容也较少，不需要临时保存
+2：要把关联合同的uid传入到合同签订里面去
+3、在提交之后关闭页面
+*/
+func_doStartFrom.prototype._doStartForm_FM_CONT_SIGN = function($flow){	
+	if (!$flow.businesskey){
+		var utils = sz.utils;
+		var cont_uid = utils.getParameter("cont_uid");
+		var fillforms = $flow.getForm();
+		fillforms.setValue(cont_uid,"cont_uid","FM_CONT_SIGN");
+	}
+	
+	sz.commons.CheckSaved.getInstance().off();	
+	$.addCallbacks("save_"+$flow.getForm().getCurrentFormName(), function(result){
+		sz.commons.Alert({msg:"操作成功",onok:function(){
+			if(top && top.navTab){
+				top.navTab.closeCurrentTab();
+			}
+		}})
+	});
+}
+
+/*规章制度立项的时候需要添加规章制度，添加规章制度的对话框需要关闭，这里需要留下关闭的接口
+*/
+func_doStartFrom.prototype._doStartForm_BMJHZD = function($flow){
+	var topDlg = sz.commons.DialogMgr.getTopDlg();
+	if(topDlg){
+		$.addCallbacks("save_"+$flow.getForm().getCurrentFormName(), function(){
+			topDlg.lastForm = $flow.getForm();
+			if(sz.custom.wi.on_callback){
+				sz.custom.wi.on_callback();
+			}
+			topDlg.close();
+		});
+	}
+	
+	var  returnBtn = $flow.getButton('return');
+	if(returnBtn){
+		returnBtn.setVisible(false);
 	}
 }
 
+/*登记外聘律师的时候需要把提交改为入库，这样更加符合使用的场景*/
+func_doStartFrom.prototype._doStartForm_LC_REGI_INFO = function($flow){
+	var submitBtn = $flow.getButton("wisubmit");
+	if(submitBtn){
+		submitBtn.setCaption("入库");
+	}
+	
+	$.addCallbacks("submit_LC_REGI_INFO", function(result){
+		sz.commons.Confirm.show({msg:"成功入库",onok:function(){
+				if(top && top.navTab){
+				 top.navTab.closeCurrentTab();
+				}
+			},oncancel:function(){
+				if(top && top.navTab){
+				 top.navTab.closeCurrentTab();
+				}
+			}
+		});						  
+	});
+}
+
+/*
+	授权委托管理员审核流程中，在授权委托管理员上传授权委托书和授权委托管理员确认环节需要设置
+	表单为修改过的状态。
+*/
+func_doStartFrom.prototype._doForm_AUTH_ENTR = function($flow){
+	var nodealias = $flow.params.form;
+	/**
+		授权委托管理员需要上传文本，所以必须一开始就设置表单为修改过的状态
+	**/
+	if(nodealias == "SQWTGLYSH" || nodealias == "SQWTGLYQR"){
+		fillForm.datamgr.getFormsData().setModified(false);
+	}	
+}
+
+/*在表单初始化的时候，做的一些处理,之所以不再各个流程中去写，是为了统一管理，减少脚本量*/
+function _doinitwiform_STARTFORM($flow){
+	var form = $flow.getForm();
+	var formName = form.getCurrentFormName();
+
+	//先调用各个流程的特殊客户端脚本,然后增加相应的按钮
+	var formFunc = new func_doStartFrom();
+	var funcName = "_doStartForm_"+formName;
+	if (formFunc[funcName]){
+		formFunc[funcName]($flow);
+	}
+	
+	
+	var fillforms = $flow.getForm();
+	var dataMgr = fillforms.datamgr;
+	/*该保存会进行数据审核，适用于那些不需要审核，只是简单入库的表单，例如“范本”，“资信库”等,用于对话框的时候，可以关闭对话框*/
+	if (["FM_TPL_INFO","FM_CASE_EXEC","LC_CASE_RESU","LC_CONT_ARCH","FM_CONT_EVAL","FM_CONT_SIGN"].indexOf(formName)!=-1){
+		$flow.addButton({id:'cisave',caption:"保存",icon:"sz-app-icon-save",next:"cancel",click:function(event){
+			fillforms.endEdit({
+				success:function(){
+					dataMgr.audit({success:function(){
+						if (dataMgr.getFormsData().getFailAuditsCount() > 0) {
+							fillforms.showAuditResults();
+							return ;
+						}
+						fillforms.submit({success:function(submitArgs,instArgs){
+							if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
+								if(sz.custom && sz.custom.wi && sz.custom.wi.on_callback){
+									sz.commons.CheckSaved.getInstance().setModified();
+									sz.custom.wi.saveFormCallback();
+								}
+							}else{
+								sz.commons.CheckSaved.getInstance().setModified();
+								window.location.reload();
+							}
+						}});
+					}
+					});
+				}
+			});	
+		}});
+		return;
+	}
+		
+	/*送审的时候会检查数据有效性，如果有对话框，会触发对话框的回调事件*/
+	$flow.addButton({id:'wisubmit',caption:"送审",icon:"sz-app-icon-run",next:"cancel",click:function(event){
+		fillforms.endEdit({
+			success:function(){
+				dataMgr.audit({success:function(){
+					var failLen = fillforms.getAllFailAuditResult().length;
+					if(failLen > 0){
+						fillforms.showAuditResults();
+						return;
+					}
+					$flow.startFlow({datas:{"dim":"value"},success:function(args, result){
+						var funcname = "submit_"+formName;
+						if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
+							if(sz.custom && sz.custom.wi && sz.custom.wi.on_submitcallback){
+								sz.commons.CheckSaved.getInstance().setModified();
+								sz.custom.wi.submitFormCallback();
+							}
+						}else{	
+							if($.wicallbacks && $.wicallbacks["submit_"+formName]){
+								$.wicallbacks[funcname](result);
+							}else{
+								sz.commons.CheckSaved.getInstance().setModified();
+								window.location.reload();
+						}}
+					}});
+				}});
+			}
+		});		
+	}});
+	
+	/*
+	 * 有些方法是在对话框中处理的，不需要临时保存，用户只需要直接上报提交审批即可，类似的方法例如：合同解除、合同变更，合同履行
+	*/
+	if (["FM_CONT_RELIEVE","FM_CONT_CHANGE","FM_CONT_PERFORM"].indexOf(formName)==-1){
+		/*临时保存只是存储为草稿，不会检查数据的有效性*/
+		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
+			fillforms.endEdit({
+				success:function(){
+					dataMgr.audit({success:function(){
+						fillforms.submit({hint:false,nodata:"true",submiterrorlevels:["checkkeyunique"],success:function(submitArgs,instArgs){
+							var funcname = "save_"+formName;
+							if($.wicallbacks && $.wicallbacks[funcname]){
+								$.wicallbacks[funcname]();
+							}else{
+								/**
+								 * 保存按钮执行回调函数分以下几种情况：
+								 * 1.弹出表单对话框，一般用于录入明细信息，例如：纠纷进展
+								 * 2.页面显示，一般就是录入表单信息，有提交、有保存，这里要跳转到维护页面，在工作流脚本中
+								 *   设置回调
+								 */
+								if($flow.wiformparams && $flow.wiformparams.openmode == "dialog"){
+									if(sz.custom && sz.custom.wi && sz.custom.wi.on_callback){
+										sz.commons.CheckSaved.getInstance().setModified();
+										sz.custom.wi.saveFormCallback();
+									}else{
+										sz.commons.CheckSaved.getInstance().setModified();
+										window.location.reload();
+									}
+								}else{
+									sz.commons.CheckSaved.getInstance().setModified();
+									window.location.reload();
+								}
+								
+							}
+						}});
+					}});
+				}
+			});	
+		}});
+	}
+	
+	//提交之后的默认回调函数，默认显示送审成功的对话框
+	$.addCallbacks("submit_"+formName, function(result){
+		sz.commons.CheckSaved.getInstance().setModified();
+		if(window.parent && $(window.parent.document).find("iframe").length>0){
+			var instid = result != null ? result["instanceid"] : "";
+			var wiresid  = $flow.resid;
+			var calcParams = "$instid="+instid+"&$wiresid="+wiresid;
+			var dlgParams = {title:"提示",width:500,height:300,showfoot:false};
+			var url = "/meta/LAWCONT/analyses/maintain/index_report/hintinfo?$sys_calcnow=true&$sys_disableCache=true&$sys_showCaptionPanel=false&$sys_showParamPanel=false&"+calcParams;
+			sz.law.showReportDlg(url, dlgParams);
+		}
+	});
+}
+
+/*在送审的界面和维护节点需要隐藏完成按钮，其他节点中需要隐藏返回按钮，保存按钮都不需要*/
 function hiddenButtons($flow){
 	var buttons = [];
 	if($flow.form && ($flow.form == "STARTFORM" || $flow.form == "MAINTAIN")){
@@ -171,7 +488,7 @@ function oninitwiquery($flow){
 	var buttons = ['start'];
 	hiddenWIButtons($flow, buttons);
 	
-	if(($flow.form && ($flow.form == "MAINTAIN")) || ($flow.query && ($flow.query == "MAINTAIN"))){
+	if(($flow.form && ($flow.form == "MAINTAIN")) || ($flow.query && ($flow.query == "MAINTAIN"))){		
 		$flow.addButton({id:'wiadd',caption:"增加",icon:"sz-app-icon-add2",next:"deletedata",click:function(event){
 			$flow.showForm({resid:$flow.resid,alias : "STARTFORM"});         
 		}});
@@ -294,7 +611,7 @@ function hiddenWIButtons($flow, buttons){
 	 * 编辑表单中的word文件
 	 * sz.ci.custom.uploadattachment.editAttachmentAsDoc($form, "htwb");
 	 */
-	upload.editAttachmentAsDoc = function($form, compid,callback, exParams){
+	upload.editAttachmentAsDoc = function($form, compid,callback, exParams , isSigner){
 		var htwb = $form.getComponent(compid);
 
 		if(!htwb.oldGetAttachmentValue){
@@ -310,11 +627,6 @@ function hiddenWIButtons($flow, buttons){
 				if(!attachmentInf.name){
 					attachmentInf.name = "word.doc";
 				}
-				
-				/**
-				 * 读取草稿时，让插件知道是读取的那个控件的草稿，便于当时审价单时，隐藏或者显示菜单栏
-				 */
-				attachmentInf.url = upload.setParameterOfUrl("compid", compid, attachmentInf.url);
 				
 				/**
 				 * 在下载word时，加入一些特殊的参数，
@@ -340,7 +652,7 @@ function hiddenWIButtons($flow, buttons){
 			
 			htwb.editAttachmentAsDoc = function(params){
 				htwb.editAttachmentAs(function(args) {
-				    var nmspace = sz.utils.guid("sz.ci.editattachment.");
+				    var nmspace = sz.utils.guid("sz.ci.editattachment.");debugger;
 				    var nmspaceObj = sz.sys.namespace(nmspace);
 				    /**
 				     * 20141104 guob
@@ -380,7 +692,11 @@ function hiddenWIButtons($flow, buttons){
 				    /**
 				     * window.open(sz.sys.ctx("/wsoffice/edit?namespace=" + nmspace));
 				     */
-				    window.open(sz.sys.ctx(upload.WORD_URL+"?namespace=" + nmspace));
+					if(isSigner == true){
+						window.open(sz.sys.ctx(upload.WORD_URL+"?namespace=" + nmspace + "&signature=true"));
+					}else{
+				   		window.open(sz.sys.ctx(upload.WORD_URL+"?namespace=" + nmspace));
+					}
 			    });
 			}
 		}
@@ -439,7 +755,7 @@ function hiddenWIButtons($flow, buttons){
 	 *   2.如果存在合同，那么最开始应该从合同表单里面取出，在存储的草稿中
 	 *   3.如果存在合同，并且在草稿中，那么就从草稿中重新取出合同
 	 */
-	upload.makeTemplateContract = function($form, compid, callback, noNeedEdit){
+	upload.makeTemplateContract = function($form, compid, callback, isSigner){
 		var compObj = $form.getComponent(compid);
 		var attachmentVal = compObj.getAttachmentValue();
 		if (attachmentVal != null){
@@ -455,6 +771,7 @@ function hiddenWIButtons($flow, buttons){
 			
 			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
 			$.post(url, data, function(info){
+				debugger;
 				/**
 				 * 2015-2-6
 				 * 以前只考虑了起草状态下的，根据范本生成合同文本，而电子签章是直接根据表单里面的附件直接
@@ -462,14 +779,13 @@ function hiddenWIButtons($flow, buttons){
 				 */
 				if(info){
 					compObj.setAttachmentValue(info);
-				}
-			    upload.editAttachmentAsDoc($form, compid,callback);
+				};
+			    upload.editAttachmentAsDoc($form, compid,callback,null,isSigner);
 			});
 		}else{
 			/**
 			 * 1.从范本里面取出合同，目前打开合同，就会自动生成，这里就不用在生成合同
 			 * TODO
-			 * 建议在外面调用 upload.uploadTemplateContract 方法
 			 */
 		}
 	}
