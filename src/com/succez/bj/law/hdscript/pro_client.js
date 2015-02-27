@@ -125,7 +125,7 @@
 	/**
 	 * 新增一条数据
 	 */
-	widlg.addFormData = function(wiPath,formData, width, height, callback){
+	widlg.addFormData = function(wiPath,formData, width, height,saveCallback, submitCallback){
 		formData = formData || {};
 		orgPatch(formData);
 		if(formData["uk"]){
@@ -138,7 +138,7 @@
 			}
 			delete formData["uk"];
 		}
-		widlg.showWIFormDialog(wiPath, formData, width, height, null, callback);
+		widlg.showWIFormDialog(wiPath, formData, width, height, null, saveCallback,submitCallback);
 	}
 	
 	
@@ -163,7 +163,7 @@
 	 * 修改数据
 	 * formdata : {formdatas:{comp:value,comp2:value}}
 	 */
-	widlg.modifyFormData = function(wiPath,formData, width, height, callback){
+	widlg.modifyFormData = function(wiPath,formData, width, height, saveCallback,submitCallback){
 		orgPatch(formData);
 		formData["url"]="/wiapi/form/showForm";
 		if(!formData["seltable"]){
@@ -178,7 +178,7 @@
 		
 		widlg.datas = formData.formdatas;
 		
-		widlg.showWIFormDialog(wiPath, null, width, height, formData, callback);
+		widlg.showWIFormDialog(wiPath, null, width, height, formData, saveCallback,submitCallback);
 	}
 	
 	/**
