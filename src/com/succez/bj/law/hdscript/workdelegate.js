@@ -25,8 +25,8 @@ function main(args){
 	println(fb);
 }
 
-function delegate(uid){
-	
+function delegate(flowUid, ){
+	sz.wi.delegateFlow();
 }
 
 /**
