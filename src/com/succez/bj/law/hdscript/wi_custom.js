@@ -551,60 +551,6 @@ function hiddenWIButtons($flow, buttons){
 		
 		var uid = $form.getComponent("fb_uid").val();
 		upload.uploadTemplateContract($form, "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/HTFBGL", "FM_TPL_INFO", "ATTACHMENT1", "FN0", uid, compid, callback, noNeedEdit);
-		
-		/*
-		var uid = $form.getComponent("fb_uid").val();
-		var data = {
-			resid		        : 'LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO',
-			dataperiod		  : "",
-			datahierarchies	: "",
-			formName		    : $form.getFormName(),
-			compid		      : compid,
-			compress		    : false,
-			ciattachment		: {
-				taskid			     : "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/HTFBGL",
-				formset			     : "default",
-				dataperiod			 : "",
-				datahierarchies		: "",
-				uid : uid,
-				rowkey : "",
-				dwTable			     : "FM_TPL_INFO",
-				fileContentField	: "ATTACHMENT1",
-				fileNameField			: "FN0"
-			},
-			formdatas : JSON.stringify(upload.getFillFormDatas($form)),
-			success		      : function(info) {
-				var newInfo = $form.getFormData().getAttachment(compid);
-				compObj.setAttachmentValue(newInfo);
-				// 在表单初始化的时候，如果用范本起草合同，那么只需要将合同初始化进去即可，不需要在线编辑，所以这里加上一个参数noNeedEdit
-				if(!noNeedEdit){
-					upload.editAttachmentAsDoc($form, compid,callback);
-				}
-			}
-		};
-	
-		var $fillforms = $form.getFillForms();
-		var datamgr    = $fillforms.getDataMgr();
-		//重载保存草稿的功能，从范本
-		if(!datamgr.oldAjax){
-			datamgr.oldAjax = datamgr.ajax;
-		
-			datamgr.ajax = function(args){
-				// sz.sys.ctx("/cifill/uploadAttachment2")
-				var url = args.url;
-				
-				if(url == sz.sys.ctx("/cifill/uploadAttachment2")){
-					args.url = sz.sys.ctx(upload.WORD_URL+"?method=saveDraft");
-					args.data.path = args.data.resid;
-					datamgr.oldAjax(args);
-				}else{
-					datamgr.oldAjax(args);
-				}
-			}
-		}
-		
-		$fillforms.uploadAttachment(data);
-		*/
 	}
 	
 	/**
@@ -736,6 +682,14 @@ function hiddenWIButtons($flow, buttons){
 			var farea = floatareas[i];
 			upload.getFillFormDatas_floatAreas(farea, result);
 		}
+		
+		/**
+		 * 加入流程实例ID，便于生成审价单时，取到科长的名称
+		 */
+		
+		var taskid = JSON.parse($form.getFillForms().$dom.parent().find(".sz-wi-wibaseform-params").val())["taskid"];
+		result["instanceid"] = taskid;
+		
 		return result;
 	}
 	

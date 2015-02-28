@@ -219,7 +219,8 @@ function downloadword(req, res){
  *            
  *         解决：
  *          1.如果含有宏的word，那就不用初始化，直接返回word源文件，并且也不用存储到草稿中   
- *          
+ * 2015-2-28 实现取节点中的审批人名，取审批人名称是在表ACT_HI_TASKINST中，在节点里面写WF_szrsh，那么就会从该表取出审批人的名称，如果有多次
+ *         审批，以取最新的一次审批对应的人为准         
  * @param {} req
  * @param {} res
  */
@@ -896,6 +897,16 @@ function makeTemplateContract(doc, formDatas){
 		var key = bk.getName();
 		bkNames.push(key);
 		
+		/**
+		 * 处理
+		 */
+		if(StringUtils.startsWith(key, "WF_")){
+			var nodeName = key.substring(3);
+			var text = makeTemplateContract_WFNode(formDatas["instanceid"], nodeName);
+			bk.setText(text);
+			continue;
+		}
+		
 		var kk = StringUtils.upperCase(key);
 		if(keys.indexOf(kk) < 0){
 			continue;
@@ -911,6 +922,22 @@ function makeTemplateContract(doc, formDatas){
 	if(ISDEBUG){
 		println("BookMark:"+bkNames.join(";"));
 	}
+}
+
+/**
+ * 取出审批流程对应的审批人，ACT_HI_TASKINST
+ * @param {} instanceid
+ * @param {} nodeName
+ */
+function makeTemplateContract_WFNode(taskid, nodeName){
+	var sql = "select t1.assignee_ from  ACT_HI_TASKINST t1 where t1.task_def_key_ =? and t1.end_time_ is not null and exists (select 1 from act_ru_task t where t.proc_inst_id_=t1.proc_inst_id_ and t.id_=?) order by end_time_ desc";
+	var ds = sz.db.getDefaultDataSource();
+	var userId = ds.select1(sql, [nodeName, taskid]);
+	var userObj = sz.security.getUser(userId, false);
+	if(userObj){
+		return userObj.name;
+	}
+	return "";
 }
 
 /**
