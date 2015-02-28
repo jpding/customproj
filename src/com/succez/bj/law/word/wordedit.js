@@ -653,7 +653,16 @@ function downloadFormWord(req, res){
 			var state = getAuditState(citask, dwTable, dataperiod, datahierarchies);
 			println("downloadFormWord: state="+state);
 			if(state == "10"){
-				downloadType = -1;
+				/**
+				 * 2015-2-27 应该判断该合同是草稿，还是范本合同，如果是范本合同，那么应该是只读模式
+				 */
+				var isContModel = getCITableFieldValue(citask, dwTable, req.dataperiod, datahierarchies, "ISCONTRACTMODEL");
+				if(isContModel == "1" && citask != null && citask.getPath() == "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO"){
+					downloadType = ProtectionType.READ_ONLY;
+					println("contract downloadType:"+downloadType);
+				}else{
+					downloadType = -1;
+				}
 			}else if(state=="20"){
 				downloadType = getDocConflictDownloadType(req, citask, resid, dwTable, fileContentField, datahierarchies);
 			}else if(state == "-1"){
