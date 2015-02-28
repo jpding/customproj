@@ -686,7 +686,14 @@ function hiddenWIButtons($flow, buttons){
 					    return nargs.filename;
 				    }
 				    nmspaceObj.success = function(info) {
-					    nargs.success(JSON.parse(info));
+				    	/**
+				    	 * cifillforms.editAttachmentAs会设置附件的信息，由于这里不会总是返回附件的内容，故这里要判断，只有返回的是
+				    	 * 附件的信息时，那么才进行设置，判断返回值含有id，那么就有附件信息，就进行设置
+				    	 */
+				    	var attaInfo = JSON.parse(info);
+				    	if(attaInfo && attaInfo.id){
+				    		nargs.success(attaInfo);
+				    	}
 					    success && success();
 				    }
 				    /**

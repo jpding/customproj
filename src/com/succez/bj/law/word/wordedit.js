@@ -52,7 +52,8 @@ var ActionUtils = com.succez.commons.webctrls.domain.ActionUtils;
 var FunctionNames = com.succez.commons.jdbc.function.FunctionNames;
 
 var ISDEBUG = true;
-var INFO_WORD_ERROR = "fail:保存的文件为空，请用管理员权限打开IE浏览器，重新编辑在保存!";
+var INFO_WORD_ERROR = {type:"fail", msg:"保存的文件为空，请用管理员权限打开IE浏览器，重新编辑在保存!"};
+var INFO_WORD_SAVESUCCESS = {type:"success"};
 
 com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
 
@@ -527,7 +528,7 @@ function saveWordToDb(args, file){
 		}
 		ds.update(updateSql,[ins, args.keys]);
 		
-		return "success";
+		return INFO_WORD_SAVESUCCESS;
 	}finally{
 		ins.close();
 	}
@@ -1620,5 +1621,5 @@ function updateWIAttachment(id, content){
 	
 	var content_id = rs[0][0]; 
 	ds.update("update ACT_GE_BYTEARRAY set BYTES_ = ? where ID_ = ?", [content, content_id]);
-	return "success";
+	return INFO_WORD_SAVESUCCESS;
 }

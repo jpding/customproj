@@ -347,10 +347,13 @@
      *  MNU_PRINT              0x256
      *  MNU_PROPS              0x32
      *  MNU_PRINTPV            0x126
+     *  
+     *  setMenuDisplay(1)  只有新建可以使用
+     *  setMenuDisplay(3)  NEW、OPEN都可以使用
 	 */
-	WSOffice.prototype.setMenuDisplay = function(menuId, b){
+	WSOffice.prototype.setMenuDisplay = function(flag){
 		if(this.aodControl){
-			this.aodControl.SetMenuDisplay(menuId, b);
+			this.aodControl.SetMenuDisplay(flag);
 		}
 	}
 	
@@ -423,18 +426,18 @@
 					encodeURIComponent(name));
 			var result = this.aodControl.HttpPost(url);
 			if(result){
-				if(result.startsWith && result.startsWith("fail")){
-					alert(result.substring(5));				
-				}
-				
-				if (this.editOffice.success) {
-					this.editOffice.success(result);
+				var r = JSON.parse(result);
+				if(r && r.type=="fail"){
+					alert(r.msg);		
+					return ;
 				}
 			}
 			
-			sz.commons.Alert.show({
-						msg : sz.sys.message("sz.ci.wsoffice.save.success")
-					});
+			if (this.editOffice.success) {
+				this.editOffice.success(result);
+			}
+			
+			alert("保存成功!");
 		} catch (e) {
 			sz.commons.Alert.show({
 					type : sz.commons.Alert.TYPE.ERROR,
@@ -447,10 +450,7 @@
 	 * 显示错误信息的对话框
 	 */
 	WSOffice.prototype.showError = function(code) {
-		sz.commons.Alert.show({
-					type : sz.commons.Alert.TYPE.ERROR,
-					msg : sz.sys.message(code, arguments[1])
-				});
+		alert(sz.sys.message(code, arguments[1]));
 	}
 
 })(jQuery);
