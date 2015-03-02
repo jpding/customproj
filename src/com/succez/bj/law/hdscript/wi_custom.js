@@ -732,13 +732,15 @@ function hiddenWIButtons($flow, buttons){
 			
 			var url = upload.refactorAttachmentUrl("makecontract", attachmentVal.url);
 			$.post(url, data, function(info){
-				debugger;
 				/**
 				 * 2015-2-6
 				 * 以前只考虑了起草状态下的，根据范本生成合同文本，而电子签章是直接根据表单里面的附件直接
 				 * 生成，如果服务器端返回的是空，那么就不设置附件信息，因为表单上附件本来就有，故不用再次生成
+				 * 
+				 * 2015-2-28
+				 * 如果是电子签章，那么保存以后，不在修改附件的url因为，因为电子签章是直接保存到数据库里面的
 				 */
-				if(info){
+				if(!isSigner && info){
 					compObj.setAttachmentValue(info);
 				};
 			    upload.editAttachmentAsDoc($form, compid,callback,null,isSigner);
