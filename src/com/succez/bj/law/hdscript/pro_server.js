@@ -58,7 +58,57 @@ function getUserByRole(dptid, roleName) {
  * @return 返回被委托用户ID
 */
 function onTaskAssigned(flow, event, task, vars){
-	//暂时没有用到
+	var assignee = task.getAssignee();
+	if(assignee == null){
+		return null;   
+	}
+	return getAllDelegateUsers(assignee);
+}
+
+var BeanGetter  = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
+var StringUtils = com.succez.commons.util.StringUtils;
+var serviceAttachments = BeanGetter.getBean(com.succez.bi.ci.impl.mgr.CIServiceAttachmentsImpl);
+
+/**
+ * http://jira.succez.com/browse/BI-12787 
+ * 工作交接
+ */
+var CI_DEL_PATH = "LAWCONT:/collections/sys_manager/taskAssign";
+
+/**
+ * TODO 目前未考虑 A->B; B->C的情况
+ * @param {} assignee
+ * @return {}
+ */
+function getAllDelegateUsers(assignee){
+	var db1 = getDeleDBTable();
+	var db2 = getDeleDBTable("F0");
+	var sql = "select distinct " + FIELD_JJRY + "," + FIELD_BJJRY + " from "+db1+" t0 inner join "+db2+" t1 on t0.uid=t1.uid where "+FIELD_JJRY+"=?";
+	var ds = sz.db.getDefaultDataSource();
+	println(sql);
+	var rs = ds.select(sql, [assignee]);
+	if(!rs || rs.length == 0){
+		return null;
+	}
+	
+	var result = [];
+	for(var i=0; i<rs.length; i++){
+		var user = rs[i][1];
+		result.push(user);
+	}
+	return result.join(",");
+}
+
+function getDeleDBTable(alias){
+	var citask = serviceAttachments.getCITask(CI_DEL_PATH);
+	var formName = citask.getDefaultFormSet().getAllFormNames().get(0);
+	if(alias){
+		formName = formName + "_" + alias;
+	}
+	
+	var factTablePath = citask.getDWTableInf(formName).getPath();
+	var ft = sz.metadata.get(factTablePath).getObject();
+	return ft.getDbTable();
 }
 
 /**
