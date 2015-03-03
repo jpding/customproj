@@ -28,6 +28,25 @@ function main(args){
 	delegate("")
 }
 
+function aftersubmitdata(args){
+	var datah = args["datahierarchies"];	
+	var uid = getDetailIdValue(datah, "UID");
+	println("delegate:"+uid);
+	delegate(uid);
+}
+
+function getDetailIdValue(keys, idField){
+	var arrs = StringUtils.parseEnumValue(keys);
+	for(var i=0; i<arrs.length; i++){
+		var id = arrs[i][0];
+		if(StringUtils.equalsIgnoreCase(id, idField)){
+			return arrs[i][1];
+		}
+	}
+	return null;
+}
+
+
 /**
  * 单次交办时执行代理，会把所有正在运行时的任务代理给被交接人
  * @param {} uid  单次交办时对应的流水号
@@ -44,9 +63,9 @@ function delegate(uid){
 	}
 	
 	var bjjr = bjjrs.join(",");
-	println("交办人："   + jjr);
-	println("被交接人：" + bjjr);
-	//sz.wi.delegateFlow("*", jjr, bjjr, "");
+	println("assigee:"   + jjr);
+	println("delegate:" + bjjr);
+	sz.wi.delegateFlow("*", jjr, bjjr, "");
 }
 
 /**
@@ -63,7 +82,7 @@ function getDele(uid){
  * 返回被交接人员，有可能是多个人
  */
 function getDele2Users(uid){
-	var rs = getUsers(uid, BFIELD_JJRY, "F0");
+	var rs = getUsers(uid, FIELD_BJJRY, "F0");
 	var result = [];
 	for(var i=0; i<rs.length; i++){
 		var uu = rs[i][0];
@@ -109,7 +128,7 @@ function getDeleDBTable(alias){
 }
 
 /**
- * 全局代理
+ * 全局代理，该代码放在项目的服务器脚本中
  */
 function onTaskDelegate(flow, event, task, vars){
 	var assignee = task.getAssignee();
