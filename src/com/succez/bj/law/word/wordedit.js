@@ -54,6 +54,7 @@ var FunctionNames = com.succez.commons.jdbc.function.FunctionNames;
 var ISDEBUG = true;
 var INFO_WORD_ERROR = {type:"fail", msg:"保存的文件为空，请用管理员权限打开IE浏览器，重新编辑在保存!"};
 var INFO_WORD_SAVESUCCESS = {type:"success"};
+var CST_FIELD_SQD = "sqdwj";
 
 com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
 
@@ -825,7 +826,7 @@ function saveDraft(req, res){
 		}
 		var formData = jsonMapper.readValue(formDataStr, java.util.Map);
 		
-		insertTemplateBefore(file, formData,"sqdwj"==compid);
+		insertTemplateBefore(file, formData,CST_FIELD_SQD==compid);
 		
 		var ins = new FileInputStream(file);
 		try {
@@ -998,21 +999,34 @@ function saveWordInForm(req, res){
 	
 	var state = getAuditState(ciTask, srcdwtable, req.period, req.datahierarchies);
 	println("saving:"+state);
+	var fileobj = getUploadFile(req);
 	if(state == "10" || state == null || state == ""){
 		/**
 		 * 起草阶段打开表单，附件一般都存储在草稿箱
 		 */
-		return editFormSavingWord(req, res, ciTask);
+		return editFormSavingWord(fileobj, req, res, ciTask);
 	}else if(state == "20"){
 		/**
 		 * 审批表单界面，直接保存word，要注意非管理员打开word时，上传word文件的长度为0
+		 * 
+		 * TODO 解决审签单保存后，再次打开申请单，不是先前电子签章后的内容，目前先在草稿里面存储一份，这种解决方式不好
+		 *      待改善，word在保存后，应该直接修改表单中附件的link
 		 */
-		return auditFormSavingWord(req, res, ciTask, formName, compName);
+		if(compName == CST_FIELD_SQD){
+			
+			var saveResult = auditFormSavingWord(fileobj, req, res, ciTask, formName, compName);
+			if(saveResult.type == "fail"){
+				return saveResult;
+			}
+			return editFormSavingWord(fileobj, req, res, ciTask);
+		}else{
+			return auditFormSavingWord(fileobj, req, res, ciTask, formName, compName);
+		}
 	}
 }
 
-function editFormSavingWord(req, res, citask){
-	var fileobj = getUploadFile(req);
+function editFormSavingWord(fileobj, req, res, citask){
+	//var fileobj = getUploadFile(req);
 	var filename = fileobj.fileName;
 	/**
 	 * 20140917 guob
@@ -1053,7 +1067,7 @@ function getAttachmentInfo(attachment){
 	return info;
 }
 
-function auditFormSavingWord(req, res, ciTask, formName, compName){
+function auditFormSavingWord(wordfile, req, res, ciTask, formName, compName){
 	var compileForms = scmgr.getCIFormsCompileInf(ciTask, "default");
 	var finf = compileForms.getCIFormCompileInf(formName);
 	var cdbinf = serviceAttachments.getFormField(finf, compName);
@@ -1061,17 +1075,17 @@ function auditFormSavingWord(req, res, ciTask, formName, compName){
 	var wordfield = cdbinf.getName();
 	var detailGrain = ciTask.getDetailGrainDef();
 	if(!detailGrain){
-		return "fail:"+ciTask.getPath()+"未设置填报明细，暂不支持!";
+		return {type:"fail", msg:ciTask.getPath()+"未设置填报明细，暂不支持!"};
 	}
 	var uid = ciTask.getDetailGrainDef().getIDField();
 	var facttable = ciTask.getDWTableInf(srcdwtable).getPath();
 	var dataHier  = URLDecoder.decode(req.datahierarchies, "utf-8");
 	var keys = getDetailIdValue(dataHier, uid);
 	if(!keys){
-		return "fail:" + dataHier+"找不到填报明细的内容!填报明细字段为："+uid;
+		return {type:"fail", msg: dataHier+"找不到填报明细的内容!填报明细字段为："+uid};
 	}
 	
-	var wordfile = getUploadFile(req);
+	//var wordfile = getUploadFile(req);
 	/**
 	 * 防止客户端随意存储word，这里先屏蔽掉，表单中的word存储，会走其他接口
 	 */
