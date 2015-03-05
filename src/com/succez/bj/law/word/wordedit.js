@@ -79,7 +79,7 @@ com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
    2. 其他时候都是只读打开
    3. 合同打印的时候，判断该合同是否审批完成，接受所有修订
    4. 合同起草时
-	  1. 范本合同，只能修改  窗体域
+	  1. 范本合同，只能修改，使用限制编辑实现
 	  2. 自由合同，全面能修改
 	  
 
@@ -90,12 +90,21 @@ com.succez.bi.activedoc.impl.aspose.AsposeUtil.licence();
       c.非合同表单，上传的word，都是直接打开，不经过任何转换，但不提供word的保存功能(那就还是只读打开)
     2.打开报表中的word文件，报表中的word是来自于采集表单，通过showfile.action进行访问，实际上是访问的wordedit.action
     3.工作流中上传的附件，以修订模式打开	  
-	  
+
+2015-3-5 审签单的处理(电子签章处理)
+	审签单要做电子签章，单子是以表格的方式来呈现，并且要能打印，单子签章后，要能保存，故审签单不能以报表的方式来做，目前
+	是以类合同范本的方式来弄的。使用的流程如下：
+	1.在需要申请单的表单上建立一个附件字段，字段名为sqdwj，该字段名是固定死的，便于系统中做一些特殊操作
+	2.在提交审批过程中，就把模板给插入到表单中，可以在服务器端进行插入，也可以在
+	3.当用户点击电子签章时，把表单上的数据和当前审签单模板进行替换后在打开，由于每次点击都会替换，会存在签章保存后，再次点击
+	  电子签章时，可能显示的不是刚才存储后的电子签章文件，这个问题按以下方式解决：
+	  1.最开始显示表单中附件的link，第一次替换后，设置附件中link为草稿link
+	  2.保存电子签章后的内容后，重新设置附件中的link为表单中的附件，当下次点击时，这样就会从表单中进行替换
  */
 
 function main(args){
 //	var obj = {facttable:"27262991",keyfield:"UID",keys:"23141f39c6a44efb81aaae0e276bb1a2",wordfield:"ATTACHMENT1"};
-//	//var obj = {facttable:"27262991",keyfield:"UID",keys:"CSSC",wordfield:"ATTACHMENT1"};
+//	var obj = {facttable:"27262991",keyfield:"UID",keys:"CSSC",wordfield:"ATTACHMENT1"};
 //	var ins = getWordInputStream(obj);
 //	println(ins);
 	testGetCIField();
