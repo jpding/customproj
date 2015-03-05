@@ -932,6 +932,7 @@ function makeTemplateContract(doc, formDatas){
 function makeTemplateContract_WFNode(taskid, nodeName){
 	var sql = "select t1.assignee_ from  ACT_HI_TASKINST t1 where t1.task_def_key_ =? and t1.end_time_ is not null and exists (select 1 from act_ru_task t where t.proc_inst_id_=t1.proc_inst_id_ and t.id_=?) order by end_time_ desc";
 	var ds = sz.db.getDefaultDataSource();
+	print(nodeName+"+++"+taskid);
 	var userId = ds.select1(sql, [nodeName, taskid]);
 	var userObj = sz.security.getUser(userId, false);
 	if(userObj){
