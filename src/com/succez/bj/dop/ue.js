@@ -4,11 +4,43 @@ function oninitfillforms(fillforms){
     	$.getScript(url,function(){
     		var p = $("#container").parent();
     		$("#container").remove();
-    		$("<script id=\"editor\" type=\"text/plain\" style=\"width:1024px;height:500px;\"></script>").appendTo(p);
-    		var ue = UE.getEditor('editor');
+    		$("<script id=\"editor\" type=\"text/plain\" style=\"width:810px;height:500px;\"></script>").appendTo(p);
+    		var ue = UE.getEditor('editor', {onready:function(){
+    			this.setContent(fillforms.getCurrentForm().getComponent("content").val());
+    		}});
+    		
+    		setTimeout(function(){
+    			ue.setContent(fillforms.getCurrentForm().getComponent("content").val());
+    		}, 500)
+    		
+    		ue.addListener("contentChange", function(){
+    			fillforms.getCurrentForm().getComponent("content").val(ue.getContent());
+    		})
     	});
     });
 }
+
+function oninitwiform($flow){
+	var url = sz.sys.ctx("/meta/IntegratedManagement/collections/doq/notice/resources/ueditor.all.js");
+	$.getScript(url,function(){
+		var p = $("#container").parent();
+		$("#container").remove();
+		$("<script id=\"editor\" type=\"text/plain\" style=\"width:810px;height:500px;\"></script>").appendTo(p);
+		var ue = UE.getEditor('editor');
+		
+		var cform = $flow.getForm().getCurrentForm();
+		setTimeout(function(){
+			var vv = cform.getComponent("content").val();
+			if(vv){
+				ue.setContent(vv);
+			}
+		}, 500)
+		
+		ue.addListener("contentChange", function(){
+			cform.getComponent("content").val(ue.getContent());
+		})
+	});
+}	
 
 /**
  * ueditor完整配置项
@@ -43,21 +75,21 @@ function oninitfillforms(fillforms){
         UEDITOR_HOME_URL: URL
 
         // 服务器统一请求接口路径
-        //, serverUrl: URL + "jsp/controller.jsp"
+        , serverUrl: URL + "controller.action"
 
         //工具栏上的所有的功能按钮和下拉框，可以在new编辑器的实例时选择自己需要的从新定义
         , toolbars: [[
             'fullscreen', 'source', '|', 'undo', 'redo', '|',
-            'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'superscript', 'subscript', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
+            'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
             'rowspacingtop', 'rowspacingbottom', 'lineheight', '|',
-            'customstyle', 'paragraph', 'fontfamily', 'fontsize', '|',
+            'paragraph', 'fontfamily', 'fontsize', '|',
             'directionalityltr', 'directionalityrtl', 'indent', '|',
-            'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
+            'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|',
             'link', 'unlink', 'anchor', '|', 'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
-            'simpleupload', 'insertimage', 'emotion', 'scrawl', 'insertvideo', 'music', 'attachment', 'map', 'gmap', 'insertframe', 'insertcode', 'webapp', 'pagebreak', 'template', 'background', '|',
-            'horizontal', 'date', 'time', 'spechars', 'snapscreen', 'wordimage', '|',
+            'simpleupload', 'insertimage', 'emotion', 'insertvideo', 'music', 'attachment', 'insertframe', 'pagebreak', 'template', 'background', '|',
+            'horizontal', 'date', 'time', 'spechars', 'wordimage', '|',
             'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
-            'print', 'preview', 'searchreplace', 'help', 'drafts'
+            'preview', 'searchreplace'
         ]]
         //当鼠标放在工具栏上时显示的tooltip提示,留空支持自动多语言配置，否则以配置值为准
         //,labelMap:{
@@ -102,15 +134,15 @@ function oninitfillforms(fillforms){
         //首行缩进距离,默认是2em
         //,indentValue:'2em'
 
-        ,initialFrameWidth:900  //初始化编辑器宽度,默认1000
-        ,initialFrameHeight:400  //初始化编辑器高度,默认320
+        ,initialFrameWidth:800  //初始化编辑器宽度,默认1000
+        ,initialFrameHeight:260  //初始化编辑器高度,默认320
 
         //,readonly : false //编辑器初始化结束后,编辑区域是否是只读的，默认是false
 
         //,autoClearEmptyNode : true //getContent时，是否删除空的inlineElement节点（包括嵌套的情况）
 
         //启用自动保存
-        //,enableAutoSave: true
+        ,enableAutoSave: false
         //自动保存间隔时间， 单位ms
         //,saveInterval: 500
 
