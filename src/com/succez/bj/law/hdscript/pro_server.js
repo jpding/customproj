@@ -94,7 +94,9 @@ function getAllDelegateUsers(assignee){
 	var result = [];
 	for(var i=0; i<rs.length; i++){
 		var user = rs[i][1];
-		result.push(user);
+		if(StringUtils.isNotEmpty(user)){
+			result.push(user);
+		}
 	}
 	return result.join(",");
 }
