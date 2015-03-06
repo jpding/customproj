@@ -109,26 +109,33 @@ func_dofrom.prototype._doForm_SJ_CBWZL = function($flow){
 }
 
 
-//func_doform.prototype._doForm_HZ_CONT_INFO = function($flow){
-//	var fillForm = $flow.getForm();
-//	var nodealias = $flow.params.form;
-//	if( "BZSH" == nodealias){
-//		fillForm.datamgr.getFormsData().setModified(true);
-//		var cont_type = fillForm.getValue("CONT_SUB_TYPE");
-//		var compid = "sqdwj";
-//		var curForm = $flow.getForm().getCurrentForm();
-//		var compObj = curForm.getComponent(compid);
-//		var val = compObj.getAttachmentValue();
-//		if (val == null){
-//			var uid = "";
+func_dofrom.prototype._doForm_HZ_CONT_INFO = function($flow){
+	var fillForm = $flow.getForm();
+	var nodealias = $flow.params.form;
+	if( "BZSH" == nodealias){
+		fillForm.datamgr.getFormsData().setModified(true);
+	//	var cont_type = fillForm.getValue("CONT_SUB_TYPE");
+		var compid = "sqdwj";
+		var curForm = $flow.getForm().getCurrentForm();
+		var compObj = curForm.getComponent(compid);
+		var val = compObj.getAttachmentValue();
+		if (val == null){
+			var uid = "e55c7a329a334f4ab5baa6df59c2f7ca";
 //			if ([].indexOf(cont_type)!=-1){
 //				 "XCSJJL" == nodealias ? "5ebd35ea67c34915b0d945b8ca3bacc3" : "a2c7d26415b645ad8a60b29398bb8c82";
 //			}
-//			var resPath = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/SQDGL";
-//			sz.law.uploadTemplateContract(curForm, resPath , "HZ_SQD", "ATTACHMENT1", "FN0", uid, compid, null ,true);
-//		}
-//	}
-//}
+			var resPath = "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/SQDGL";
+			sz.law.uploadTemplateContract(curForm, resPath , "HZ_SQD", "ATTACHMENT1", "FN0", uid, compid, null ,true);
+		}
+	}
+	
+	if(["BZSH","FWBBZZLFS","FWBBZSH"].indexOf(nodealias)!=-1){
+		$flow.addButton({id:'signer',caption:"电子签章",icon:"sz-app-icon-add2",next:"",click:function(event){
+			var $form = $flow.getForm().getCurrentForm();
+			sz.custom.uploadSQD($form,"sqdwj",{initPlugin:function(plugin){/*plugin.Toolbars=false*/}});
+		}});
+	}
+}
 
 /*处理授权委托中需要系统设置为默认修改的部分，在授权委托管理员审核和授权委托管理员确认环节需要处理*/
 func_dofrom.prototype._doForm_AUTH_ENTR = function($flow){
@@ -137,7 +144,8 @@ func_dofrom.prototype._doForm_AUTH_ENTR = function($flow){
 		授权委托管理员需要上传文本，所以必须一开始就设置表单为修改过的状态
 	**/
 	if(nodealias == "SQWTGLYSH" || nodealias == "SQWTGLYQR"){
-		fillForm.datamgr.getFormsData().setModified(false);
+		var fillForm = $flow.getForm();
+		fillForm.datamgr.getFormsData().setModified(true);
 	}	
 }
 /**
@@ -264,8 +272,9 @@ func_doStartFrom.prototype._doStartForm_FM_CONT_SIGN = function($flow){
 		fillforms.setValue(cont_uid,"cont_uid","FM_CONT_SIGN");
 	}
 	
+	$flow.getButton("wisubmit").setCaption("保存");
 	sz.commons.CheckSaved.getInstance().off();	
-	$.addCallbacks("save_"+$flow.getForm().getCurrentFormName(), function(result){
+	$.addCallbacks("submit_"+$flow.getForm().getCurrentFormName(), function(result){
 		sz.commons.Alert({msg:"操作成功",onok:function(){
 			if(top && top.navTab){
 				top.navTab.closeCurrentTab();
@@ -334,18 +343,11 @@ function _doinitwiform_STARTFORM($flow){
 	var form = $flow.getForm();
 	var formName = form.getCurrentFormName();
 
-	//先调用各个流程的特殊客户端脚本,然后增加相应的按钮
-	var formFunc = new func_doStartFrom();
-	var funcName = "_doStartForm_"+formName;
-	if (formFunc[funcName]){
-		formFunc[funcName]($flow);
-	}
-	
 	
 	var fillforms = $flow.getForm();
 	var dataMgr = fillforms.datamgr;
 	/*该保存会进行数据审核，适用于那些不需要审核，只是简单入库的表单，例如“范本”，“资信库”等,用于对话框的时候，可以关闭对话框*/
-	if (["FM_TPL_INFO","FM_CASE_EXEC","LC_CASE_RESU","LC_CONT_ARCH","FM_CONT_EVAL","FM_CONT_SIGN"].indexOf(formName)!=-1){
+	if (["FM_TPL_INFO","FM_CASE_EXEC","LC_CASE_RESU","LC_CONT_ARCH","FM_CONT_EVAL"].indexOf(formName)!=-1){
 		$flow.addButton({id:'cisave',caption:"保存",icon:"sz-app-icon-save",next:"cancel",click:function(event){
 			fillforms.endEdit({
 				success:function(){
@@ -370,6 +372,12 @@ function _doinitwiform_STARTFORM($flow){
 				}
 			});	
 		}});
+		
+		var formFunc = new func_doStartFrom();
+		var funcName = "_doStartForm_"+formName;
+		if (formFunc[funcName]){
+			formFunc[funcName]($flow);
+		}
 		return;
 	}
 		
@@ -406,7 +414,7 @@ function _doinitwiform_STARTFORM($flow){
 	/*
 	 * 有些方法是在对话框中处理的，不需要临时保存，用户只需要直接上报提交审批即可，类似的方法例如：合同解除、合同变更，合同履行
 	*/
-	if (["FM_CONT_RELIEVE","FM_CONT_CHANGE","FM_CONT_PERFORM"].indexOf(formName)==-1){
+	if (["FM_CONT_RELIEVE","FM_CONT_CHANGE","FM_CONT_PERFORM","FM_CONT_SIGN"].indexOf(formName)==-1){
 		/*临时保存只是存储为草稿，不会检查数据的有效性*/
 		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
 			fillforms.endEdit({
@@ -456,6 +464,14 @@ function _doinitwiform_STARTFORM($flow){
 			sz.law.showReportDlg(url, dlgParams);
 		}
 	});
+	
+	
+	//调用各个流程的特殊客户端脚本,然后增加相应的按钮
+	var formFunc = new func_doStartFrom();
+	var funcName = "_doStartForm_"+formName;
+	if (formFunc[funcName]){
+		formFunc[funcName]($flow);
+	}
 }
 
 /*在送审的界面和维护节点需要隐藏完成按钮，其他节点中需要隐藏返回按钮，保存按钮都不需要*/
@@ -736,11 +752,8 @@ function hiddenWIButtons($flow, buttons){
 				 * 2015-2-6
 				 * 以前只考虑了起草状态下的，根据范本生成合同文本，而电子签章是直接根据表单里面的附件直接
 				 * 生成，如果服务器端返回的是空，那么就不设置附件信息，因为表单上附件本来就有，故不用再次生成
-				 * 
-				 * 2015-2-28
-				 * 如果是电子签章，那么保存以后，不在修改附件的url因为，因为电子签章是直接保存到数据库里面的
 				 */
-				if(!isSigner && info){
+				if(info){
 					compObj.setAttachmentValue(info);
 				};
 			    upload.editAttachmentAsDoc($form, compid,callback,null,isSigner);
