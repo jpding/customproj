@@ -78,11 +78,29 @@ function loginTrim() {
             // location.href = biurl + urs.join('');
             var ssologin = document.getElementById('ssologin');
             ssologin.src = '<%=serverPath%>wsb/user.do?cmd=login&name=' + user + '&password=' + pwd;
+            
+            if (ssologin.attachEvent){
+				ssologin.attachEvent("onload", function(){
+					if(!xnhLogin(ssologin.contentWindow.document, loginform)){
+						return ;
+					}
+					(parent || window).location.href = biurl + urs.join('');
+				});
+			} else {
+				ssologin.onload = function(){
+					if(!xnhLogin(ssologin.contentWindow.document, loginform)){
+						return ;
+					}
+					(parent || window).location.href = biurl + urs.join('');
+				};
+			}
+			
+            /*
             ssologin.onreadystatechange = function() {
                 if (ssologin.readyState === 'complete') {
                     (parent || window).location.href = biurl + urs.join('');
                 }
-            };
+            };*/
         } else {
             var path = "<%=serverPath%>wsb/user.do"; <%
             if (checkmac) { %>
@@ -96,6 +114,28 @@ function loginTrim() {
     return false;
 }
 
+function xnhLogin(doc, form){
+	var tds = doc.getElementsByTagName("td");
+	for(var i=0; tds && i<tds.length; i++){
+		var td = tds[i];
+		var bk = td.getAttribute("background");
+		if(bk && bk.indexOf("wsb/images/bg_fail.gif")>-1){
+			oldLogin(form);
+			return false;
+		}
+	}
+	return true;
+}
+
+function oldLogin(form){
+	var path = "<%=serverPath%>wsb/user.do"; <%
+	if (checkmac) { %>
+		var mac = getMacAddress();
+		path = path + "?MAC=" + mac; <%
+	} %>
+	form.action = path;
+	form.submit();
+}
 
 function getMacAddress(){
 	return  plugin.doCommand("getmacaddress");
