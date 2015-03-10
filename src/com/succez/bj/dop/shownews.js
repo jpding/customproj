@@ -23,6 +23,13 @@ function execute(req, res){
 	res.attr("title", news.title);
 	res.attr("content", news.content);
 	
+	/**
+	 * 记录访问日志
+	 */
+	if(id){
+		recondLog("notice", id);
+	}
+	
 	return "show.ftl";
 }
 
@@ -61,3 +68,37 @@ function getNewsObject(id){
 	return {title:rs[0][0], content:rs[0][1]};
 }
 
+/*
+create table SZSYS_CS_LOG (
+	LSH_    numeric(18,0),
+	MODEL_  varchar(50),
+	UID_    varchar(50),
+	USER_   varchar(50),
+	TIME_   datetime
+)
+ */
+
+var TABLE_LOG = "SZSYS_CS_LOG";
+
+/**
+ * 当有人访问新闻时记录日志，便于以后分析点击率等，没刷新一次算一次pv
+ * LSH_      流水号
+ * MODEL_    模块，也有可能记录其他模块的阅读日志
+ * UID_      访问内容ID，如果是新闻模块，那么就记录新闻ID 
+ * USER_     用户ID
+ * TIME_     具体访问的时间
+ */
+function recondLog(model, uid){
+	var user = sz.security.getCurrentUser();
+	try{
+		var ds = sz.db.getDefaultDataSource();
+		var dialect = ds.getDialect();
+		var sql1 = new java.lang.StringBuilder();
+		sql1.append("insert into ").append(TABLE_LOG).append("(LSH_,MODEL_,UID_,USER_, time_)  values(?,?,?,?,getdate())");
+		var sql = sql1.toString();
+		println(sql);
+		ds.update(sql, [seqnum(TABLE_LOG), model, uid, sz.security.getCurrentUser().id]);
+	}catch(ex){
+		println(ex);
+	}
+}
