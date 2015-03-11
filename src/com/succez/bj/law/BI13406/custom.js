@@ -1,6 +1,7 @@
 var BeanGetter = com.succez.commons.service.springmvcext.BeanGetterHolder.getBeanGetter();
 var lockService = BeanGetter.getBean(com.succez.commons.service.impl.lock.LockServiceImpl);
 var StringUtils = com.succez.commons.util.StringUtils;
+var NumberUtils = com.succez.commons.util.NumberUtils;
 var conflictTableResource = lockService.createResourceByPath("/SUCCEZBJHD/SZ_CUSTOM_CONFLICT");
 var TIME_ONE_DAY = 86400000;
 
@@ -26,7 +27,7 @@ function aftersubmitdata(args){
 	lockObj.lock(TIME_ONE_DAY);
 	try{
 		if(needUpdate(uid)){
-			var num = genSeqnum(FORM_TABLE, FORM_FIELD_SHENG, FORM_FIELD_SEQ);
+			var num = genSeqnum(uid);
 			updateSeqnum(uid, num);
 		}
 	}finally{
@@ -78,8 +79,9 @@ function genSeqnum(uid){
 	var maxSeqField = dialect.renderFunction("max",dialect.renderFunction("right", dialect.renderFunction("left", FORM_FIELD_SEQ, 11), 4));
 	
 	var sql = java.lang.String.format(SQL_MAX_SEQ, maxSeqField, FORM_TABLE, FORM_FIELD_UID, FORM_FIELD_SHENG);
-	println("genSeqnum:"+sql);
+	println("genSeqnum:"+sql+";uid:"+uid);
 	var maxSeq = ds.select1(sql, [uid]);
+	
 	if(!maxSeq){
 		return "0001";
 	}
