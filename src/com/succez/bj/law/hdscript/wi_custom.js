@@ -190,7 +190,7 @@ function oninitwiform($flow){
 		}
 		
 		if($flow.form == "STARTFORM"){
-			_doinitwiform_STARTFORM($flow);
+			_doinitwiform_STARTFORM($flow, state);
 		}
 	}
 	
@@ -339,7 +339,7 @@ func_doStartFrom.prototype._doForm_AUTH_ENTR = function($flow){
 }
 
 /*在表单初始化的时候，做的一些处理,之所以不再各个流程中去写，是为了统一管理，减少脚本量*/
-function _doinitwiform_STARTFORM($flow){
+function _doinitwiform_STARTFORM($flow, state){
 	var form = $flow.getForm();
 	var formName = form.getCurrentFormName();
 
@@ -414,7 +414,8 @@ function _doinitwiform_STARTFORM($flow){
 	/*
 	 * 有些方法是在对话框中处理的，不需要临时保存，用户只需要直接上报提交审批即可，类似的方法例如：合同解除、合同变更，合同履行
 	*/
-	if (["FM_CONT_RELIEVE","FM_CONT_CHANGE","FM_CONT_PERFORM","FM_CONT_SIGN"].indexOf(formName)==-1){
+	var needAddWiSaveButton = (["FM_CONT_RELIEVE","FM_CONT_CHANGE","FM_CONT_PERFORM","FM_CONT_SIGN"].indexOf(formName)==-1) && (state=="10"); 
+	if (needAddWiSaveButton){
 		/*临时保存只是存储为草稿，不会检查数据的有效性*/
 		$flow.addButton({id:'wisave',caption:"临时保存",icon:"sz-app-icon-save",next:"wisubmit",click:function(event){
 			fillforms.endEdit({
