@@ -1,9 +1,11 @@
 function afterbatchaudit(args) {
 	println("=============afterbatchaudit=============================================");
-	println("=============afterbatchaudit=============================================");
 	var dwDataUpdate = getDwDataUpdate();
 	var result = args.result;
 	println(result);
+	
+	clearDBTable();
+	
 	var notPassed = result.getNotPassedResults();
 	for (var i = 0; i < notPassed.size(); i++) {
 		var formsResults = notPassed.get(i);
@@ -50,6 +52,19 @@ function groupByAuditResults(expAuditResults) {
 		}
 	}
 	return results;
+}
+
+/**
+ * 清空表
+ */
+function clearDBTable(){
+	var entity = sz.metadata.get('sjzl:/datamodels/事实表/F_DETAILS');
+	var factTable = entity.getObject();
+	var dbTable = factTable.getDbTable();
+	println("清空表："+dbTable);
+	var dsName  = factTable.getDataSourceName();
+	var ds = sz.db.getDataSource(dsName);
+	ds.update("delete from "+dbTable);
 }
 
 function getDwDataUpdate() {
