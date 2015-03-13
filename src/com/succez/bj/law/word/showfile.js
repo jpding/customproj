@@ -65,8 +65,10 @@ function execute(req, res){
 		if(ext == "doc" || ext == "docx" || ext == "xls" || ext=="xlsx"){
 			/**
 			 * 如果是上传，并且是草稿，那么那就直接打开，但对于范本合同，应该只读打开
+			 * 由于目前req.getRequestURI()是根本取不到实际的url的，每次返回都是/script/view，故在跳转到
+			 * wordedit.action时，记录用户实际的访问link
 			 */
-			req.setAttribute("downloadtype",ProtectionType.READ_ONLY);
+			req.setAttribute("rurl","showfile");
 			req.setAttribute("method", "downloadFormWord");
 			req.setAttribute("ext", ext);
 			if(isInWorkflow){

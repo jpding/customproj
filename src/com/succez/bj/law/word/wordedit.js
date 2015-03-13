@@ -614,14 +614,15 @@ function checkSaveWord(fileObj){
  * 
  * 2015-1-14 加入可以下载审批历史记录中的，如果只有id一个参数，那么就认为是直接下载审批历史表中的附件
  * 
- * 2015-1-15 可以直接下载Excel附件，由于word控件不支持对Excel处理，故直接下载
+ * 2015-1-15 可以直接下载Excel附件，由于word控件不支持对Excel处理，故直接下载;
+ *   TODO 打开xlsx时，会出现一个提示信息，就是下载的内容和扩展名不一致，具体原因不明
  * 
  * @param {} req
  * @param {} res
  * @mapping
  */
 function downloadFormWord(req, res){
-	println("download:"+req.getRequestURI());
+	println("downloadFormWord:"+req.getRequestURI());
 	var id = req.id;
 	var resid = req.path;
 	var datahierarchies = req.datahierarchies;
@@ -733,10 +734,25 @@ function getDocAuditType(req){
 
 /**
  * 对于合同管理，在流程内部是只读的，如果在部门外才是修订模式
+ * 2015-3-11 如果是通过showfile.action打开的word文件，并且状态为20，那么一律应为只读模式。
  * @return {}
  */
 function getDocConflictDownloadType(req,citask, resid, dwTable, fileContentField, datahierarchies){
 	var downloadType = ProtectionType.ALLOW_ONLY_REVISIONS;
+	
+	if(req.rurl == "showfile"){
+		return ProtectionType.READ_ONLY;
+	}
+	
+	println("===============================");
+	var headers = req.getHeaderNames();
+	while(headers.hasMoreElements()){
+		var elem = headers.nextElement();
+		println(elem+":"+req.getHeader(elem))
+	}
+	println("===============================");
+	
+	
 	
 	var isContModel = getCITableFieldValue(citask, dwTable, req.dataperiod, datahierarchies, "ISCONTRACTMODEL");
 	if(isContModel == "1" && citask != null && citask.getPath() == "LAWCONT:/collections/HD_PROJECT/HDBD_HTGL/LC_CONT_INFO"){

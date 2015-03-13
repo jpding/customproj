@@ -100,9 +100,9 @@
 	    	}
 	  		var downloadUrlParam = sz.utils.setParameter("method", method);
 	  		/**
-	  		 * downloadtype 在wordedit.ftl中定义
+	  		 * rurl 在wordedit.ftl中定义
 	  		 */
-	  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random()+"&version="+this.getWordVersion();
+	  		downloadUrl = downloadUrl+downloadUrlParam+"&sid="+Math.random()+"&rurl="+rurl+"&version="+this.getWordVersion();
 			this.editOffice = sz.sys.namespace("szword");
 			
 			this.editOffice.getArgs = function(){
